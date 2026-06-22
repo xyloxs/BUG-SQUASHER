@@ -917,7 +917,9 @@ class Game {
   // ---- Canvas ----
   _initCanvas(){
     const dpr=window.devicePixelRatio||1;
-    const pad=24;
+    // No padding on touch/mobile — fullscreen. Small padding on desktop for aesthetics.
+    const isTouch='ontouchstart' in window||navigator.maxTouchPoints>0;
+    const pad=isTouch?0:20;
     const scale=Math.min((window.innerWidth-pad*2)/CONFIG.WIDTH,(window.innerHeight-pad*2)/CONFIG.HEIGHT);
     this._scale=scale;
     const cssW=Math.round(CONFIG.WIDTH*scale),cssH=Math.round(CONFIG.HEIGHT*scale);
