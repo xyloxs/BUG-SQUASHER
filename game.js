@@ -1092,7 +1092,8 @@ class Game {
     this.nameEl=document.getElementById('nameInput');
     this.lang=this._detectLang();
     window.__bsLang=this.lang;
-    this.state='INTRO';
+    // First visit: must confirm language. Return visitor: skip LANG_SELECT.
+    this.state=this._hasConfirmedLang()?'INTRO':'LANG_SELECT';
     this._introTs=0;
     this.lastTs=0;this.shakeX=0;this.shakeY=0;this._gameOverTs=0;
     this.player=null;this.enemies=[];this.bullets=[];
@@ -1119,6 +1120,7 @@ class Game {
     const nav=(navigator.language||'en').slice(0,2).toLowerCase();
     return STRINGS[nav]?nav:'en';
   }
+  _hasConfirmedLang(){ return !!localStorage.getItem(CONFIG.LANG_KEY); }
   _setLang(code){this.lang=code;window.__bsLang=code;localStorage.setItem(CONFIG.LANG_KEY,code);}
 
   // ---- Name input ----
@@ -1684,12 +1686,14 @@ class Game {
     ctx.fillText(T('lang_title'),CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.14)+26);
     ctx.restore();
 
+    // Language data — no emoji flags (unreliable on Android/old iOS)
+    // Each lang has a color badge drawn with canvas shapes
     const langs=[
-      {code:'de',flag:'🇩🇪',name:'Deutsch'},
-      {code:'en',flag:'🇬🇧',name:'English'},
-      {code:'fr',flag:'🇫🇷',name:'Français'},
-      {code:'es',flag:'🇪🇸',name:'Español'},
-      {code:'ar',flag:'🇸🇦',name:'العربية'},
+      {code:'de',colors:['#000','#FF0000','#FFCE00'],name:'Deutsch'},    // DE: black/red/gold
+      {code:'en',colors:['#012169','#FFFFFF','#C8102E'],name:'English'},  // UK: navy/white/red
+      {code:'fr',colors:['#002395','#FFFFFF','#ED2939'],name:'Français'}, // FR: blue/white/red
+      {code:'es',colors:['#AA151B','#F1BF00','#AA151B'],name:'Español'},  // ES: red/yellow/red
+      {code:'ar',colors:['#006C35','#FFFFFF','#006C35'],name:'العربية'},  // SA: green/white/green
     ];
     const cols=2,cardW=Math.min(210,CONFIG.WIDTH*0.4),cardH=80,gapX=16,gapY=12;
     const gridW=cols*(cardW+gapX)-gapX,startX=CONFIG.WIDTH/2-gridW/2;
@@ -1712,11 +1716,26 @@ class Game {
         this._card(ctx,x,y,cardW,cardH,14);
         if(isHov){this._rr(ctx,x,y,cardW,cardH,14);ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fill();}
       }
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.font='28px serif';ctx.fillText(lang.flag,x+cardW/2,y+cardH/2-10);
-      const nf=lang.code==='ar'?`${isActive?'bold ':''} 13px ${SYS_AR}`:(isActive?F(13,'bold'):F(13));
+
+      // Canvas-drawn flag badge (3 horizontal stripes, 28×20px, rounded)
+      const bW=28,bH=20,bX=x+cardW/2-bW/2,bY=y+cardH/2-22;
+      ctx.save();
+      ctx.beginPath();this._rr(ctx,bX,bY,bW,bH,3);ctx.clip();
+      const [c1,c2,c3]=lang.colors;
+      const sh=bH/3;
+      ctx.fillStyle=c1;ctx.fillRect(bX,bY,bW,sh+1);
+      ctx.fillStyle=c2;ctx.fillRect(bX,bY+sh,bW,sh+1);
+      ctx.fillStyle=c3;ctx.fillRect(bX,bY+sh*2,bW,sh+1);
+      ctx.restore();
+      // Badge border
+      ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=0.5;
+      ctx.beginPath();this._rr(ctx,bX,bY,bW,bH,3);ctx.stroke();
+
+      // Language name
+      const nf=lang.code==='ar'?`${isActive?'bold ':''} 12px ${SYS_AR}`:(isActive?F(12,'bold'):F(12));
       ctx.font=nf;ctx.fillStyle=isActive?'#fff':CONFIG.COLORS.textPri;
-      ctx.fillText(lang.name,x+cardW/2,y+cardH/2+17);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(lang.name,x+cardW/2,y+cardH/2+12);
       ctx.restore();
     });
 
