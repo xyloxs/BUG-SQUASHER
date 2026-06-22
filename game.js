@@ -783,9 +783,9 @@ class Player extends Entity {
 // Spider — Grandpa with Walker
 // =============================================================================
 class Spider extends Entity {
-  constructor(x,y){
+  constructor(x,y,speed){
     super(x,y,14);
-    this.hp=3;this.speed=155+Math.random()*55;
+    this.hp=3;this.speed=speed!==undefined?speed:(155+Math.random()*55);
     this.legPhase=Math.random()*Math.PI*2;this.color=CONFIG.COLORS.spider;
     this.skinTone=SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)];
   }
@@ -839,9 +839,9 @@ class Spider extends Entity {
 // Snake — Grandma on Mobility Scooter
 // =============================================================================
 class Snake extends Entity {
-  constructor(x,y,player){
+  constructor(x,y,player,speed){
     super(x,y,10);
-    this.hp=1;this.speed=290+Math.random()*80;
+    this.hp=1;this.speed=speed!==undefined?speed:(290+Math.random()*80);
     this.sinePhase=0;this.baseAngle=Math.atan2(player.y-y,player.x-x);
     this.color=CONFIG.COLORS.snake;this.spineX=x;this.spineY=y;
     this.skinTone=SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)];
@@ -1186,10 +1186,13 @@ class Game {
     this.score=0;this.combo=1;this.comboTimer=0;
     this.enemies=[];this.bullets=[];this.ps=new ParticleSystem();this.waves=new WaveManager();
     this.player=new Player(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);
+    this.lives=3;
     this.shakeX=0;this.shakeY=0;this.scoreSubmitted=false;
     this._shootHint={active:true,timer:0};
     this._hasKilled=false;
     this._comboFloaters=[];this._waveAnnounce=null;this._prevWaveState='gap';
+    this._bonusPopup=null;
+    this._activePowerup=null;
     this._driftChars=Array.from({length:20},()=>({
       ch:['{}','()','[]','<>','//','&&','||','!=','==','++'][Math.floor(Math.random()*10)],
       x:Math.random()*CONFIG.WIDTH,
@@ -1205,6 +1208,16 @@ class Game {
     this._saveLocalScore();this._submitScore();
     this.state='GAME_OVER';this._gameOverTs=performance.now();
     this.input.clearAll();
+  }
+  // Called when player HP hits 0. Costs 1 life; if lives remain, respawn with full HP + 2s invincibility.
+  _loseLife(){
+    this.lives=Math.max(0,this.lives-1);
+    if(this.lives<=0){this.toGameOver();return;}
+    this.player.hp=CONFIG.PLAYER_MAX_HP;
+    this.player.invincibleTimer=2000; // 2s respawn invincibility
+    this.player.x=CONFIG.WIDTH/2;
+    this.player.y=CONFIG.HEIGHT/2;
+    this._shake(12);
   }
 
   // ---- Leaderboard ----
@@ -1274,6 +1287,10 @@ class Game {
     if(this.combo>1){this.comboTimer-=dt;if(this.comboTimer<=0){this.combo=1;this.comboTimer=0;}}
     // Combo floaters
     if(this._comboFloaters){const s=dt*0.001;this._comboFloaters.forEach(f=>{f.y+=f.vy*s;f.alpha-=s*1.2;});this._comboFloaters=this._comboFloaters.filter(f=>f.alpha>0);}
+    // Bonus popup fade
+    if(this._bonusPopup){this._bonusPopup.timer-=dt;this._bonusPopup.alpha=Math.max(0,this._bonusPopup.timer/this._bonusPopup.maxTimer);if(this._bonusPopup.timer<=0)this._bonusPopup=null;}
+    // Active powerup timer
+    if(this._activePowerup){this._activePowerup.timer-=dt;if(this._activePowerup.timer<=0)this._activePowerup=null;}
     // Drift chars
     if(this._driftChars){const s=dt*0.001;const syms=['{}','()','[]','<>','//','&&','||','!=','==','++'];for(const c of this._driftChars){c.y+=c.speed*s;if(c.y>CONFIG.HEIGHT+20){c.y=-20;c.x=Math.random()*CONFIG.WIDTH;c.ch=syms[Math.floor(Math.random()*syms.length)];}}}
     if(this._shootHint&&this._shootHint.active&&this.waves.state==='active'&&this.waves.wave===1){
@@ -1297,7 +1314,7 @@ class Game {
         if(e.dead)continue;
         if(e.collidesWith(this.player)){
           this.player.takeDamage(this.audio);this.combo=1;this.comboTimer=0;this._shake(9);
-          if(this.player.hp<=0){this.toGameOver();return;}break;
+          if(this.player.hp<=0){this._loseLife();return;}break;
         }
       }
     }
@@ -1307,7 +1324,11 @@ class Game {
     this.combo=Math.min(this.combo+1,10);this.comboTimer=CONFIG.COMBO_RESET_MS;
     this.score+=(CONFIG.BASE_SCORES[enemy.constructor.name]||10)*this.combo;
     if(!this._hasKilled){this._hasKilled=true;if(this._shootHint)this._shootHint.active=false;}
-    if(this.combo>1)this._comboFloaters.push({text:'×'+this.combo,x:enemy.x,y:enemy.y-10,alpha:1,vy:-55});
+    if(this.combo>1){
+      this._comboFloaters.push({text:'×'+this.combo,x:enemy.x,y:enemy.y-10,alpha:1,vy:-55});
+      // Large centered bonus popup — replaces persistent stack as the "wow" moment
+      this._bonusPopup={text:'×'+this.combo+' BONUS!',alpha:1,timer:1200,maxTimer:1200};
+    }
     this.ps.emit(enemy.x,enemy.y,enemy.color,20,{speedMin:60,speedMax:200,lifeMin:300,lifeMax:700,radiusMin:2,radiusMax:6});
     this.ps.emit(enemy.x,enemy.y,'#FFFFFF',3,{speedMin:120,speedMax:280,lifeMin:150,lifeMax:340,radiusMin:1,radiusMax:3});
     this.ps.emit(enemy.x,enemy.y,CONFIG.COLORS.gold,2,{speedMin:80,speedMax:180,lifeMin:200,lifeMax:450,radiusMin:1,radiusMax:2});
@@ -1968,52 +1989,160 @@ class Game {
     const ctx=this.ctx;
     ctx.save();ctx.direction=isRTL()?'rtl':'ltr';
 
-    // ---- HP Bar (segmented) ----
-    const segW=18,segH=8,segGap=4,segR=3;
-    const barY=14;
-    const totalW=CONFIG.PLAYER_MAX_HP*segW+(CONFIG.PLAYER_MAX_HP-1)*segGap;
-    const barX=isRTL()?(CONFIG.WIDTH-12-totalW):12;
-    for(let i=0;i<CONFIG.PLAYER_MAX_HP;i++){
-      const sx=isRTL()?(barX+totalW-(i+1)*(segW+segGap)+segGap):(barX+i*(segW+segGap));
-      const full=i<this.player.hp;
+    // ================================================================
+    // 1. HEALTH BAR — horizontal, color-coded, with duck silhouette
+    // ================================================================
+    const barW=120,barH=10,barX=12,barY=12,barR=5;
+    const hp=this.player?this.player.hp:CONFIG.PLAYER_MAX_HP;
+    const hpRatio=hp/CONFIG.PLAYER_MAX_HP;
+    // Pick bar fill color based on HP %
+    let barColor;
+    if(hpRatio>0.6)       barColor='#30D158'; // green
+    else if(hpRatio>0.3)  barColor='#FFD60A'; // yellow
+    else                  barColor='#FF453A'; // red
+
+    // Dark backing track
+    ctx.save();
+    this._rr(ctx,barX,barY,barW,barH,barR);
+    ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fill();
+    // Thin border
+    ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=0.8;ctx.stroke();
+    ctx.restore();
+
+    // Filled portion (clipped to pill)
+    if(hpRatio>0){
+      const fillW=Math.max(barR*2,barW*hpRatio);
       ctx.save();
-      this._rr(ctx,sx,barY,segW,segH,segR);
-      ctx.fillStyle=full?CONFIG.COLORS.error:'rgba(255,69,58,0.12)';
-      if(full){ctx.shadowColor=CONFIG.COLORS.error;ctx.shadowBlur=5;}
-      ctx.fill();
+      this._rr(ctx,barX,barY,barW,barH,barR);
+      ctx.clip();
+      ctx.fillStyle=barColor;
+      ctx.shadowColor=barColor;ctx.shadowBlur=6;
+      ctx.fillRect(barX,barY,fillW,barH);
+      // Subtle highlight stripe
       ctx.shadowBlur=0;
+      ctx.fillStyle='rgba(255,255,255,0.18)';
+      ctx.fillRect(barX,barY,fillW,barH*0.4);
       ctx.restore();
     }
 
-    // ---- Score (HEAD — 20px bold, centered) ----
+    // Duck silhouette icon — 5 circles: body + head + bill (left of bar)
+    // Drawn at (barX-26, barY+barH/2) so it sits centred on the bar
+    const dix=barX-26,diy=barY+barH/2;
+    ctx.save();ctx.translate(dix,diy);ctx.scale(0.55,0.55);
+    ctx.fillStyle='#FFD60A';ctx.strokeStyle='#CC9900';ctx.lineWidth=1.5;
+    // body ellipse
+    ctx.beginPath();ctx.ellipse(0,3,17,13,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // head
+    ctx.beginPath();ctx.arc(7,-10,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // bill
+    ctx.fillStyle='#FF8C00';ctx.beginPath();ctx.moveTo(15,-11);ctx.quadraticCurveTo(28,-9,26,-5);ctx.lineTo(15,-6);ctx.closePath();ctx.fill();
+    // eye
+    ctx.translate(10,-13);ctx.fillStyle='white';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(0,0,2.2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+
+    // ================================================================
+    // 2. LIVES — 3 duck outlines to the right of the health bar
+    // ================================================================
+    const livesX=barX+barW+10;
+    const livesY=barY+barH/2;
+    const lifeSize=10; // radius of each life icon
+    const lifeGap=24;
+    const totalLives=3;
+    for(let i=0;i<totalLives;i++){
+      const lx=livesX+i*lifeGap+lifeSize;
+      const alive=(this.lives||0)>i;
+      ctx.save();ctx.translate(lx,livesY);ctx.scale(0.38,0.38);
+      if(alive){
+        // Filled yellow duck
+        ctx.fillStyle='#FFD60A';ctx.strokeStyle='#CC9900';ctx.lineWidth=1.8;ctx.shadowColor='#FFD60A';ctx.shadowBlur=6;
+        ctx.beginPath();ctx.ellipse(0,3,17,13,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.beginPath();ctx.arc(7,-10,10,0,Math.PI*2);ctx.fill();ctx.stroke();
+        ctx.shadowBlur=0;ctx.fillStyle='#FF8C00';
+        ctx.beginPath();ctx.moveTo(15,-11);ctx.quadraticCurveTo(28,-9,26,-5);ctx.lineTo(15,-6);ctx.closePath();ctx.fill();
+      } else {
+        // Dim outline only
+        ctx.globalAlpha=0.22;
+        ctx.strokeStyle='#FFD60A';ctx.lineWidth=2.2;ctx.fillStyle='transparent';
+        ctx.beginPath();ctx.ellipse(0,3,17,13,0,0,Math.PI*2);ctx.stroke();
+        ctx.beginPath();ctx.arc(7,-10,10,0,Math.PI*2);ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ================================================================
+    // 3. SCORE — centered top, bold white; best below in dim text
+    // ================================================================
     ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(20,'bold');
     ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(this.score,CONFIG.WIDTH/2,8);
     ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
     ctx.fillText(T('hi_score')+' '+this.highScore,CONFIG.WIDTH/2,32);
 
-    // ---- BONUS stack (top-right) ----
-    if(this.combo>1){
-      const pulse=0.72+0.28*Math.abs(Math.sin(ts*0.004));
-      const bx=isRTL()?12:(CONFIG.WIDTH-12);
-      const align=rtlAlign('right');
-      // Multiplier — HEAD size
-      ctx.globalAlpha=pulse;
-      ctx.textAlign=align;
-      ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=10;
-      ctx.font=F(20,'bold');
-      ctx.fillText('×'+this.combo,bx,8);
-      // BONUS label — BODY size, below
+    // ================================================================
+    // 4. WAVE BADGE — pill top-right
+    // ================================================================
+    const wbW=80,wbH=26,wbX=CONFIG.WIDTH-90,wbY=12,wbR=13;
+    ctx.save();
+    // Dark pill background
+    this._rr(ctx,wbX,wbY,wbW,wbH,wbR);
+    ctx.fillStyle='rgba(0,0,0,0.62)';ctx.fill();
+    // Accent border
+    ctx.strokeStyle=CONFIG.COLORS.accent;ctx.lineWidth=1.2;ctx.stroke();
+    // Wave text
+    const waveLabel=this.waves.state==='gap'
+      ?(this.waves.wave===0?T('get_ready'):T('wave_in',this.waves.wave+1))
+      :T('wave',this.waves.wave);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(12,'bold');
+    fillTextFit(ctx,waveLabel,wbX+wbW/2,wbY+wbH/2,wbW-12,11,'bold');
+    ctx.restore();
+
+    // ================================================================
+    // 5. BONUS POPUP — large centered screen text, fades 1.2s
+    // ================================================================
+    if(this._bonusPopup&&this._bonusPopup.alpha>0){
+      const bp=this._bonusPopup;
+      ctx.save();
+      ctx.globalAlpha=bp.alpha;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=F(40,'bold');
+      ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=28;
+      ctx.fillStyle=CONFIG.COLORS.gold;
+      ctx.fillText(bp.text,CONFIG.WIDTH/2,CONFIG.HEIGHT/2-60);
       ctx.shadowBlur=0;
-      ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12,'bold');
-      ctx.fillText(T('combo'),bx,32);
-      ctx.globalAlpha=1;ctx.shadowBlur=0;
+      ctx.restore();
     }
 
-    // ---- Wave label (bottom-center — BODY) ----
-    ctx.textAlign='center';ctx.textBaseline='bottom';
-    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
-    const wt=this.waves.state==='gap'?(this.waves.wave===0?T('get_ready'):T('wave_in',this.waves.wave+1)):T('wave',this.waves.wave);
-    fillTextFit(ctx,wt,CONFIG.WIDTH/2,CONFIG.HEIGHT-30,CONFIG.WIDTH-120,12);
+    // ================================================================
+    // 6. ACTIVE POWERUP INDICATOR — pill bottom-left
+    // ================================================================
+    if(this._activePowerup){
+      const ap=this._activePowerup;
+      const apW=110,apH=26,apX=12,apR=13;
+      // Position above joystick on mobile, otherwise bottom-left with footer gap
+      const footerH=22,joystickH=this._isTouchDevice()?130:0;
+      const apY=CONFIG.HEIGHT-footerH-joystickH-apH-8;
+      ctx.save();
+      // Dark pill bg
+      this._rr(ctx,apX,apY,apW,apH,apR);
+      ctx.fillStyle='rgba(0,0,0,0.62)';ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1;ctx.stroke();
+      // Icon + name text
+      ctx.textAlign='left';ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(11,'bold');
+      ctx.fillText(ap.icon+' '+ap.name,apX+10,apY+apH/2-3);
+      // Draining bar beneath text
+      const tbW=apW-20,tbH=3,tbX=apX+10,tbY=apY+apH-6,tbR=1.5;
+      this._rr(ctx,tbX,tbY,tbW,tbH,tbR);
+      ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fill();
+      const fillRatio=Math.max(0,ap.timer/ap.maxTimer);
+      if(fillRatio>0){
+        this._rr(ctx,tbX,tbY,tbW*fillRatio,tbH,tbR);
+        ctx.fillStyle='#FFFFFF';ctx.fill();
+      }
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
