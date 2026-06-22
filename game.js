@@ -102,6 +102,7 @@ const STRINGS = {
     lb_offline:    'Saved locally',
     lb_empty:      'No scores yet',
     lb_you:        'You',
+    new_player:    'Play as a different player',
     enemy_spider:  'Null Pointer Spider',
     enemy_snake:   'Segfault Snake',
     enemy_octopus: 'Infinite Loop ∞',
@@ -150,6 +151,7 @@ const STRINGS = {
     lb_offline:    'Lokal gespeichert',
     lb_empty:      'Noch keine Einträge',
     lb_you:        'Du',
+    new_player:    'Als anderer Spieler starten',
     enemy_spider:  'Null-Pointer-Spinne',
     enemy_snake:   'Segfault-Schlange',
     enemy_octopus: 'Endlosschleife ∞',
@@ -198,6 +200,7 @@ const STRINGS = {
     lb_offline:    'Enregistré localement',
     lb_empty:      'Pas encore de scores',
     lb_you:        'Vous',
+    new_player:    'Jouer avec un autre profil',
     enemy_spider:  'Araignée Null Pointer',
     enemy_snake:   'Serpent Segfault',
     enemy_octopus: 'Boucle infinie ∞',
@@ -246,6 +249,7 @@ const STRINGS = {
     lb_offline:    'Guardado localmente',
     lb_empty:      'Sin puntuaciones aún',
     lb_you:        'Tú',
+    new_player:    'Jugar con otro jugador',
     enemy_spider:  'Araña Null Pointer',
     enemy_snake:   'Serpiente Segfault',
     enemy_octopus: 'Bucle infinito ∞',
@@ -294,6 +298,7 @@ const STRINGS = {
     lb_offline:    'محفوظ محلياً',
     lb_empty:      'لا توجد نتائج بعد',
     lb_you:        'أنت',
+    new_player:    'اللعب باسم مختلف',
     enemy_spider:  'عنكبوت Null Pointer',
     enemy_snake:   'ثعبان Segfault',
     enemy_octopus: 'حلقة لا نهاية لها ∞',
@@ -856,7 +861,7 @@ class Game {
     this.playerName='';
     this.leaderboard=this._loadLocalScores();
     this.scoreSubmitted=false;this.submittingScore=false;
-    this._langCards=[];
+    this._langCards=[];this._newPlayerLinkBounds=null;
     this._wireNameInput();
     this._initCanvas();
     window.addEventListener('resize',()=>this._initCanvas());
@@ -1383,13 +1388,59 @@ class Game {
 
     this._drawLeaderboard(ctx);
 
-    if(performance.now()-this._gameOverTs>600&&Math.floor(ts/600)%2===0){
+    const guardElapsed = performance.now() - this._gameOverTs > 600;
+
+    // Restart prompt (flashing)
+    if(guardElapsed && Math.floor(ts/600)%2===0){
       ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
-      fillTextFit(ctx,this._isTouchDevice()?T('restart_t'):T('restart'),cx,Math.round(CONFIG.HEIGHT*0.95),CONFIG.WIDTH-80,13);
+      fillTextFit(ctx,this._isTouchDevice()?T('restart_t'):T('restart'),cx,Math.round(CONFIG.HEIGHT*0.92),CONFIG.WIDTH-80,13);
     }
+
+    // "Play as different player" link — always visible after guard
+    if(guardElapsed){
+      const linkY = Math.round(CONFIG.HEIGHT*0.965);
+      const linkText = T('new_player');
+      ctx.font = F(11);
+      const linkW = Math.min(ctx.measureText(linkText).width + 24, CONFIG.WIDTH - 60);
+      const linkX = cx - linkW/2;
+      const mx = this.input.mouse.x, my = this.input.mouse.y;
+      const linkHov = mx >= linkX && mx <= linkX+linkW && my >= linkY-14 && my <= linkY+4;
+
+      ctx.save();
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle = linkHov ? CONFIG.COLORS.textPri : CONFIG.COLORS.textDim;
+      ctx.font = F(11);
+      fillTextFit(ctx, linkText, cx, linkY, CONFIG.WIDTH-60, 11);
+      // Underline
+      const tw = Math.min(ctx.measureText(linkText).width, CONFIG.WIDTH-60);
+      ctx.strokeStyle = linkHov ? CONFIG.COLORS.textPri : CONFIG.COLORS.textDim;
+      ctx.lineWidth = 0.5; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(cx - tw/2, linkY+2); ctx.lineTo(cx + tw/2, linkY+2); ctx.stroke();
+      ctx.restore();
+
+      // Hit test — separate from main restart click
+      this._newPlayerLinkBounds = { x: linkX, y: linkY-16, w: linkW, h: 20 };
+    } else {
+      this._newPlayerLinkBounds = null;
+    }
+
     this._vignette(ctx);ctx.restore();
-    if(performance.now()-this._gameOverTs>600){
-      if(this.input.consumeAction()||this.input.consumeClick())this.toPlaying();
+
+    if(guardElapsed){
+      if(this.input.consumeClick()){
+        const mx=this.input.mouse.x, my=this.input.mouse.y;
+        const b=this._newPlayerLinkBounds;
+        if(b && mx>=b.x && mx<=b.x+b.w && my>=b.y && my<=b.y+b.h){
+          // New player: clear name, go to name input
+          this.playerName='';
+          this.input.clearAll();
+          this.toNameInput();
+        } else {
+          this.toPlaying();
+        }
+      } else if(this.input.consumeAction()){
+        this.toPlaying();
+      }
     }
   }
 
