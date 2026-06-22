@@ -18,8 +18,9 @@ const MONO   = "'Courier New', Courier, monospace";
 // CONFIG
 // =============================================================================
 const CONFIG = {
-  WIDTH:  window.innerWidth,
-  HEIGHT: window.innerHeight,
+  // Fixed logical resolution — consistent gameplay on all screen sizes
+  WIDTH:  800,
+  HEIGHT: 600,
   MAX_DT: 50,
 
   PLAYER_SPEED:         260,
@@ -392,7 +393,7 @@ class AudioManager {
 class InputManager {
   constructor(canvas) {
     this.keys  = {};
-    this.mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, down: false };
+    this.mouse = { x: CONFIG.WIDTH / 2, y: CONFIG.HEIGHT / 2, down: false };
     this.touch = {
       joystick: { active: false, id: -1, startX: 0, startY: 0, curX: 0, curY: 0 },
       shoot:    { active: false, id: -1, x: 0, y: 0 },
@@ -403,10 +404,12 @@ class InputManager {
     // Last known move direction for keyboard-only shooting
     this._lastMoveAngle  = 0;
     this._spaceHeld      = false;
+    this._scale          = 1; // updated by Game._initCanvas via setScale()
     this._bindKeyboard();
     this._bindMouse(canvas);
     this._bindTouch(canvas);
   }
+  setScale(scale) { this._scale = scale; }
   _bindKeyboard() {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
@@ -422,8 +425,8 @@ class InputManager {
   _bindMouse(canvas) {
     canvas.addEventListener('mousemove', e => {
       const r = canvas.getBoundingClientRect();
-      this.mouse.x = (e.clientX - r.left) * (canvas.width  / r.width  / (window.devicePixelRatio || 1));
-      this.mouse.y = (e.clientY - r.top)  * (canvas.height / r.height / (window.devicePixelRatio || 1));
+      this.mouse.x = (e.clientX - r.left) / this._scale;
+      this.mouse.y = (e.clientY - r.top)  / this._scale;
     });
     canvas.addEventListener('mousedown', e => {
       this.mouse.down = true; this._clickConsumed = true;
@@ -432,14 +435,17 @@ class InputManager {
     canvas.addEventListener('mouseup', () => { this.mouse.down = false; });
   }
   _bindTouch(canvas) {
-    const toCanvas = (cx, cy) => {
-      const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-      return { x: (cx - r.left) * (canvas.width / r.width / dpr), y: (cy - r.top) * (canvas.height / r.height / dpr) };
+    const toLogical = (cx, cy) => {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: (cx - r.left) / this._scale,
+        y: (cy - r.top)  / this._scale,
+      };
     };
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
-        const p = toCanvas(t.clientX, t.clientY);
+        const p = toLogical(t.clientX, t.clientY);
         // Always mirror into mouse for menu hit-tests
         this.mouse.x = p.x;
         this.mouse.y = p.y;
@@ -461,7 +467,7 @@ class InputManager {
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
-        const p = toCanvas(t.clientX, t.clientY);
+        const p = toLogical(t.clientX, t.clientY);
         if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) {
           this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y;
         }
@@ -901,18 +907,37 @@ class Game {
   _hideNameInput() { if (!this.nameEl) return; this.nameEl.classList.remove('visible'); this.nameEl.blur(); }
 
   _initCanvas() {
-    const dpr=window.devicePixelRatio||1;
-    this.canvas.width=CONFIG.WIDTH*dpr; this.canvas.height=CONFIG.HEIGHT*dpr;
-    this.canvas.style.width=CONFIG.WIDTH+'px'; this.canvas.style.height=CONFIG.HEIGHT+'px';
-    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+    const dpr    = window.devicePixelRatio || 1;
+    const scaleX = window.innerWidth  / CONFIG.WIDTH;
+    const scaleY = window.innerHeight / CONFIG.HEIGHT;
+    // Fill screen: scale up to fit (cover, not letterbox — crops slightly if aspect differs)
+    const scale  = Math.max(scaleX, scaleY);
+    this._scale  = scale;
+
+    // Canvas physical pixels
+    this.canvas.width  = Math.round(CONFIG.WIDTH  * scale * dpr);
+    this.canvas.height = Math.round(CONFIG.HEIGHT * scale * dpr);
+
+    // CSS size — fills viewport
+    this.canvas.style.width  = Math.round(CONFIG.WIDTH  * scale) + 'px';
+    this.canvas.style.height = Math.round(CONFIG.HEIGHT * scale) + 'px';
+
+    // Center canvas if one dimension overflows (cover mode)
+    const offX = (window.innerWidth  - CONFIG.WIDTH  * scale) / 2;
+    const offY = (window.innerHeight - CONFIG.HEIGHT * scale) / 2;
+    this.canvas.style.position = 'fixed';
+    this.canvas.style.left     = Math.round(offX) + 'px';
+    this.canvas.style.top      = Math.round(offY) + 'px';
+
+    // Transform: scale * dpr maps logical px → physical px
+    this.ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+
+    // Tell InputManager the current scale for coordinate mapping
+    if (this.input) this.input.setScale(scale);
   }
   _onResize() {
-    CONFIG.WIDTH=window.innerWidth; CONFIG.HEIGHT=window.innerHeight;
     this._initCanvas();
-    if(this.player){
-      this.player.x=Math.max(this.player.radius,Math.min(CONFIG.WIDTH -this.player.radius,this.player.x));
-      this.player.y=Math.max(this.player.radius,Math.min(CONFIG.HEIGHT-this.player.radius,this.player.y));
-    }
+    // Player stays within logical bounds — no clamping needed since bounds are fixed
   }
   _startLoop() {
     const loop=ts=>{
