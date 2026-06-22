@@ -1244,7 +1244,8 @@ class Game {
     if(elapsed>6)this.toLangSelect();
   }
 
-  // ---- LANG_SELECT ----
+  // ---- Draw dispatcher ----
+  _draw(ts){
     const ctx=this.ctx;
     ctx.clearRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
     if(this.state==='INTRO')       {this._drawIntro(ts);       this._drawFooter(ts);return;}
