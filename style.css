@@ -20,8 +20,3 @@ body {
   image-rendering: pixelated;
 }
 
-@media (hover: none) {
-  #gameCanvas {
-    cursor: none;
-  }
-}

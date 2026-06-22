@@ -22,8 +22,8 @@
 // CONFIG
 // =============================================================================
 const CONFIG = {
-  WIDTH:  800,
-  HEIGHT: 600,
+  WIDTH:  window.innerWidth,
+  HEIGHT: window.innerHeight,
   MAX_DT: 50,
 
   PLAYER_SPEED:       220,
@@ -133,7 +133,7 @@ class AudioManager {
 class InputManager {
   constructor(canvas) {
     this.keys   = {};
-    this.mouse  = { x: CONFIG.WIDTH / 2, y: CONFIG.HEIGHT / 2, down: false };
+    this.mouse  = { x: window.innerWidth / 2, y: window.innerHeight / 2, down: false };
     this.touch  = {
       joystick: { active: false, id: -1, startX: 0, startY: 0, curX: 0, curY: 0 },
       shoot:    { active: false, id: -1, x: 0, y: 0 }
@@ -539,6 +539,8 @@ class Spider extends Entity {
     this.x += this.vx * dt * 0.001;
     this.y += this.vy * dt * 0.001;
     this.legPhase += dt * 0.008;
+    if (this.x < -100 || this.x > CONFIG.WIDTH + 100 ||
+        this.y < -100 || this.y > CONFIG.HEIGHT + 100) this.dead = true;
   }
 
   draw(ctx) {
@@ -617,7 +619,7 @@ class Snake extends Entity {
     const dx   = player.x - this.x;
     const dy   = player.y - this.y;
     const dist = Math.hypot(dx, dy) || 1;
-    this.baseAngle += Math.atan2(dy / dist, dx / dist) * 0.01;
+    this.baseAngle += Math.atan2(dy / dist, dx / dist) * 0.025;
 
     if (this.x < -50 || this.x > CONFIG.WIDTH + 50 ||
         this.y < -50 || this.y > CONFIG.HEIGHT + 50) this.dead = true;
@@ -668,7 +670,7 @@ class Octopus extends Entity {
     super(x, y, 16);
     this.hp              = 4;
     this.orbitAngle      = Math.atan2(y - CONFIG.HEIGHT / 2, x - CONFIG.WIDTH / 2);
-    this.orbitRadius     = 255;
+    this.orbitRadius     = Math.min(CONFIG.WIDTH, CONFIG.HEIGHT) * 0.42;
     this.orbitSpeed      = 0.55 + Math.random() * 0.25;
     this.chargeTimer     = 2800 + Math.random() * 1500;
     this.charging        = false;
@@ -685,6 +687,8 @@ class Octopus extends Entity {
     if (this.charging) {
       this.x += this.chargeVx * dt * 0.001;
       this.y += this.chargeVy * dt * 0.001;
+      this.chargeVx += (player.x - this.x) * 0.05;
+      this.chargeVy += (player.y - this.y) * 0.05;
       this.chargeDuration -= dt;
       if (this.chargeDuration <= 0) {
         this.charging = false;
@@ -693,6 +697,7 @@ class Octopus extends Entity {
         this.orbitAngle = Math.atan2(this.y - CONFIG.HEIGHT / 2, this.x - CONFIG.WIDTH / 2);
       }
     } else {
+      this.orbitRadius = Math.min(CONFIG.WIDTH, CONFIG.HEIGHT) * 0.42;
       this.orbitAngle += this.orbitSpeed * dt * 0.001;
       this.x = CONFIG.WIDTH  / 2 + Math.cos(this.orbitAngle) * this.orbitRadius;
       this.y = CONFIG.HEIGHT / 2 + Math.sin(this.orbitAngle) * this.orbitRadius;
@@ -782,6 +787,8 @@ class Ghost extends Entity {
     this.x += this.vx * dt * 0.001;
     this.y += this.vy * dt * 0.001;
     this.floatPhase += dt * 0.003;
+    if (this.x < -100 || this.x > CONFIG.WIDTH + 100 ||
+        this.y < -100 || this.y > CONFIG.HEIGHT + 100) this.dead = true;
   }
 
   draw(ctx) {
@@ -881,7 +888,7 @@ class WaveManager {
     const types = [];
 
     // Progressive composition
-    const nSpiders  = Math.min(2 + w,           8);
+    const nSpiders  = Math.min(3 + w,           10);
     const nSnakes   = Math.max(0, Math.floor(w / 2));
     const nOctopi   = Math.max(0, Math.floor((w - 2) / 2));
     const nGhosts   = Math.max(0, Math.floor((w - 3) / 3));
@@ -951,6 +958,7 @@ class Game {
     this.highScore  = parseInt(localStorage.getItem(CONFIG.HS_KEY)) || 0;
 
     this._initCanvas();
+    window.addEventListener('resize', () => this._onResize());
     this._startLoop();
   }
 
@@ -960,7 +968,17 @@ class Game {
     this.canvas.height = CONFIG.HEIGHT * dpr;
     this.canvas.style.width  = CONFIG.WIDTH  + 'px';
     this.canvas.style.height = CONFIG.HEIGHT + 'px';
-    this.ctx.scale(dpr, dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  _onResize() {
+    CONFIG.WIDTH  = window.innerWidth;
+    CONFIG.HEIGHT = window.innerHeight;
+    this._initCanvas();
+    if (this.player) {
+      this.player.x = Math.max(this.player.radius, Math.min(CONFIG.WIDTH  - this.player.radius, this.player.x));
+      this.player.y = Math.max(this.player.radius, Math.min(CONFIG.HEIGHT - this.player.radius, this.player.y));
+    }
   }
 
   _startLoop() {
@@ -1109,6 +1127,10 @@ class Game {
     this.shakeY = (Math.random() * 2 - 1) * magnitude;
   }
 
+  _isTouchDevice() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }
+
   // ---- Draw ----
 
   _draw(ts) {
@@ -1134,12 +1156,16 @@ class Game {
       ctx.shadowBlur  = 0;
       ctx.font        = '14px Courier New';
       ctx.fillStyle   = CONFIG.COLORS.dim;
-      ctx.fillText('press P to resume', CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 20);
+      const resumeHint = this._isTouchDevice() ? 'TAP ANYWHERE TO RESUME' : 'PRESS P TO RESUME';
+      ctx.fillText(resumeHint, CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 20);
       ctx.restore();
     }
 
     // Paused input handling
-    if (this.state === 'PAUSED' && this.input.consumePause()) this.toResumed();
+    if (this.state === 'PAUSED') {
+      if (this.input.consumePause()) this.toResumed();
+      else if (this._isTouchDevice() && this.input.consumeClick()) this.toResumed();
+    }
   }
 
   _drawGame(ts) {
@@ -1171,6 +1197,7 @@ class Game {
 
     // HUD (no shake)
     this._drawHUD(ts);
+    this._drawTouchOverlay();
     this._drawCRT();
   }
 
@@ -1249,29 +1276,103 @@ class Game {
     ctx.restore();
   }
 
+  _drawTouchOverlay() {
+    if (!this._isTouchDevice()) return;
+    const ctx = this.ctx;
+    const j   = this.input.touch.joystick;
+    const s   = this.input.touch.shoot;
+    ctx.save();
+
+    // Vertical divider
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(CONFIG.WIDTH / 2, 0);
+    ctx.lineTo(CONFIG.WIDTH / 2, CONFIG.HEIGHT);
+    ctx.stroke();
+
+    // Zone labels when idle
+    ctx.font         = '11px Courier New';
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign    = 'center';
+    if (!j.active) {
+      ctx.fillStyle = CONFIG.COLORS.dim;
+      ctx.fillText('MOVE', CONFIG.WIDTH * 0.25, CONFIG.HEIGHT - 35);
+    }
+    if (!s.active) {
+      ctx.fillStyle = CONFIG.COLORS.dim;
+      ctx.fillText('SHOOT', CONFIG.WIDTH * 0.75, CONFIG.HEIGHT - 35);
+    }
+
+    // Joystick visual
+    if (j.active) {
+      const dx    = j.curX - j.startX;
+      const dy    = j.curY - j.startY;
+      const dist  = Math.hypot(dx, dy);
+      const maxR  = 45;
+      const cx    = j.startX + (dist > maxR ? (dx / dist) * maxR : dx);
+      const cy    = j.startY + (dist > maxR ? (dy / dist) * maxR : dy);
+      // Outer ring
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.arc(j.startX, j.startY, maxR, 0, Math.PI * 2);
+      ctx.stroke();
+      // Inner dot
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Shoot crosshair
+    if (s.active) {
+      ctx.strokeStyle = CONFIG.COLORS.player;
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,215,0,0.4)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.moveTo(s.x - 30, s.y); ctx.lineTo(s.x + 30, s.y);
+      ctx.moveTo(s.x, s.y - 30); ctx.lineTo(s.x, s.y + 30);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
   _drawMenu(ts) {
     const ctx = this.ctx;
     ctx.fillStyle = CONFIG.COLORS.bg;
     ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
 
+    const titleY    = Math.round(CONFIG.HEIGHT * 0.17);
+    const subtitleY = Math.round(CONFIG.HEIGHT * 0.23);
+    const duckY     = Math.round(CONFIG.HEIGHT * 0.42);
+    const ctrlYBase = Math.round(CONFIG.HEIGHT * 0.60);
+    const promptY   = Math.round(CONFIG.HEIGHT * 0.78);
+    const hsY       = Math.round(CONFIG.HEIGHT * 0.84);
+
     // Title
     ctx.save();
-    ctx.textAlign   = 'center';
-    ctx.shadowColor = CONFIG.COLORS.player;
-    ctx.shadowBlur  = 35;
-    ctx.fillStyle   = CONFIG.COLORS.player;
-    ctx.font        = 'bold 56px Courier New';
+    ctx.textAlign    = 'center';
+    ctx.shadowColor  = CONFIG.COLORS.player;
+    ctx.shadowBlur   = 35;
+    ctx.fillStyle    = CONFIG.COLORS.player;
+    ctx.font         = 'bold 56px Courier New';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText('BUG SQUASHER', CONFIG.WIDTH / 2, 120);
-    ctx.shadowBlur  = 0;
+    ctx.fillText('BUG SQUASHER', CONFIG.WIDTH / 2, titleY);
+    ctx.shadowBlur   = 0;
 
     ctx.fillStyle = CONFIG.COLORS.accent;
     ctx.font      = '15px Courier New';
-    ctx.fillText('rubber duck debugging, taken literally', CONFIG.WIDTH / 2, 152);
+    ctx.fillText('rubber duck debugging, taken literally', CONFIG.WIDTH / 2, subtitleY);
     ctx.restore();
 
     // Duck illustration (centered, large)
-    this._drawMenuDuck(ctx, CONFIG.WIDTH / 2, 255, ts);
+    this._drawMenuDuck(ctx, CONFIG.WIDTH / 2, duckY, ts);
 
     // Controls
     ctx.save();
@@ -1279,8 +1380,10 @@ class Game {
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle    = CONFIG.COLORS.dim;
     ctx.font         = '13px Courier New';
-    const lines = ['WASD / ARROWS — move', 'MOUSE AIM + CLICK — shoot', 'P — pause'];
-    lines.forEach((ln, i) => ctx.fillText(ln, CONFIG.WIDTH / 2, 355 + i * 22));
+    const lines = this._isTouchDevice()
+      ? ['TAP LEFT HALF — move', 'TAP RIGHT HALF — aim + shoot', 'Tap both sides simultaneously']
+      : ['WASD / ARROWS — move', 'MOUSE AIM + CLICK — shoot', 'P — pause'];
+    lines.forEach((ln, i) => ctx.fillText(ln, CONFIG.WIDTH / 2, ctrlYBase + i * 22));
     ctx.restore();
 
     // Enemies preview row
@@ -1293,7 +1396,8 @@ class Game {
       ctx.font         = 'bold 17px Courier New';
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('[ CLICK OR PRESS SPACE TO START ]', CONFIG.WIDTH / 2, 468);
+      const promptText = this._isTouchDevice() ? '[ TAP ANYWHERE TO START ]' : '[ CLICK OR PRESS SPACE TO START ]';
+      ctx.fillText(promptText, CONFIG.WIDTH / 2, promptY);
       ctx.restore();
     }
 
@@ -1304,7 +1408,7 @@ class Game {
       ctx.font         = '13px Courier New';
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('HIGH SCORE: ' + this.highScore, CONFIG.WIDTH / 2, 500);
+      ctx.fillText('HIGH SCORE: ' + this.highScore, CONFIG.WIDTH / 2, hsY);
       ctx.restore();
     }
 
@@ -1368,11 +1472,12 @@ class Game {
   }
 
   _drawEnemyPreviews(ctx, ts) {
+    const previewY = Math.round(CONFIG.HEIGHT * 0.72);
     const previews = [
-      { label: 'NULL PTR SPIDER',  color: CONFIG.COLORS.spider,  x: 185 },
-      { label: 'SEGFAULT SNAKE',   color: CONFIG.COLORS.snake,   x: 330 },
-      { label: 'INFINITE LOOP ∞',  color: CONFIG.COLORS.octopus, x: 475 },
-      { label: 'MEMORY LEAK',      color: CONFIG.COLORS.ghost,   x: 620 },
+      { label: 'NULL PTR SPIDER',  color: CONFIG.COLORS.spider,  x: Math.round(CONFIG.WIDTH * 0.23) },
+      { label: 'SEGFAULT SNAKE',   color: CONFIG.COLORS.snake,   x: Math.round(CONFIG.WIDTH * 0.41) },
+      { label: 'INFINITE LOOP ∞',  color: CONFIG.COLORS.octopus, x: Math.round(CONFIG.WIDTH * 0.59) },
+      { label: 'MEMORY LEAK',      color: CONFIG.COLORS.ghost,   x: Math.round(CONFIG.WIDTH * 0.78) },
     ];
     previews.forEach(p => {
       ctx.save();
@@ -1382,7 +1487,7 @@ class Game {
       ctx.shadowColor  = p.color;
       ctx.shadowBlur   = 8;
       ctx.font         = '9px Courier New';
-      ctx.fillText(p.label, p.x, 430);
+      ctx.fillText(p.label, p.x, previewY);
       ctx.restore();
     });
   }
@@ -1404,34 +1509,35 @@ class Game {
     ctx.shadowBlur  = 24;
     ctx.fillStyle   = '#FF4444';
     ctx.font        = 'bold 44px Courier New';
-    ctx.fillText('SEGMENTATION FAULT', CONFIG.WIDTH / 2, 210);
+    ctx.fillText('SEGMENTATION FAULT', CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.35));
 
     ctx.shadowBlur  = 0;
     ctx.fillStyle   = CONFIG.COLORS.dim;
     ctx.font        = '14px Courier New';
-    ctx.fillText('(core dumped)', CONFIG.WIDTH / 2, 238);
+    ctx.fillText('(core dumped)', CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.40));
 
     ctx.fillStyle   = CONFIG.COLORS.hud;
     ctx.font        = 'bold 30px Courier New';
-    ctx.fillText('SCORE: ' + this.score, CONFIG.WIDTH / 2, 298);
+    ctx.fillText('SCORE: ' + this.score, CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.50));
 
     if (this.score > 0 && this.score >= this.highScore) {
       ctx.fillStyle   = CONFIG.COLORS.player;
       ctx.shadowColor = CONFIG.COLORS.player;
       ctx.shadowBlur  = 14;
       ctx.font        = 'bold 18px Courier New';
-      ctx.fillText('NEW HIGH SCORE!', CONFIG.WIDTH / 2, 335);
+      ctx.fillText('NEW HIGH SCORE!', CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.56));
       ctx.shadowBlur  = 0;
     } else if (this.highScore > 0) {
       ctx.fillStyle = CONFIG.COLORS.dim;
       ctx.font      = '14px Courier New';
-      ctx.fillText('BEST: ' + this.highScore, CONFIG.WIDTH / 2, 335);
+      ctx.fillText('BEST: ' + this.highScore, CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.56));
     }
 
     if (Math.floor(ts / 540) % 2 === 0) {
       ctx.fillStyle = CONFIG.COLORS.hud;
       ctx.font      = 'bold 16px Courier New';
-      ctx.fillText('[ CLICK OR SPACE TO RESTART ]', CONFIG.WIDTH / 2, 420);
+      const restartText = this._isTouchDevice() ? '[ TAP TO RESTART ]' : '[ CLICK OR SPACE TO RESTART ]';
+      ctx.fillText(restartText, CONFIG.WIDTH / 2, Math.round(CONFIG.HEIGHT * 0.70));
     }
 
     this._drawCRT();

@@ -4,6 +4,30 @@ All notable changes to **BUG-SQUASHER** are listed here.
 
 ---
 
+## v1.1.0 — 2026-06-22
+
+### Fixes & Improvements
+
+| Fix | Detail |
+|---|---|
+| **Fullscreen canvas** | Canvas fills entire device screen on mobile, tablet, and desktop — no fixed 800x600 |
+| **Live CONFIG dimensions** | CONFIG.WIDTH/HEIGHT updated on window resize, all downstream code adapts automatically |
+| **DPR-safe init** | `ctx.setTransform` replaces `ctx.scale` to prevent DPR accumulation bug on repeated resize |
+| **Resize handler** | `_onResize()` recalculates canvas, clamps player position, Octopus orbit adapts live |
+| **Octopus orbit** | `orbitRadius = Math.min(W, H) * 0.42` — always within visible area on any screen |
+| **Octopus charge** | 5% per-frame course correction toward current player position |
+| **Snake homing** | Homing coefficient 0.01 → 0.025 — snakes no longer escape off canvas |
+| **Spider/Ghost despawn** | Off-screen entities (> 100px outside bounds) mark dead — prevents memory accumulation |
+| **Wave balance** | Wave 1 now spawns 4 spiders instead of 3, cap raised from 8 to 10 |
+| **Touch overlay** | Virtual joystick ring + inner dot drawn when active; shoot crosshair at tap point |
+| **Zone labels** | "MOVE" / "SHOOT" labels visible when touch zones are idle |
+| **Platform-aware text** | Menu and pause screens show touch instructions on touch devices |
+| **Tap-to-resume** | On touch devices, tapping anywhere resumes from PAUSE screen |
+| **Proportional layouts** | All menu/game-over Y positions use CONFIG.HEIGHT multipliers — scale to any screen height |
+| **Touch start/restart** | "TAP ANYWHERE TO START/RESTART" prompt on mobile |
+
+---
+
 ## v1.0.0 — 2026-06-22
 
 ### New Features
