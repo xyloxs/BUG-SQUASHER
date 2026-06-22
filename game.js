@@ -10,8 +10,8 @@ const MONO   = "'SF Mono', 'Fira Code', 'Courier New', monospace";
 // CONFIG
 // =============================================================================
 const CONFIG = {
-  WIDTH:  800,
-  HEIGHT: 600,
+  WIDTH:  window.innerWidth,
+  HEIGHT: window.innerHeight,
   MAX_DT: 50,
 
   PLAYER_SPEED:         260,
@@ -921,19 +921,24 @@ class Game {
   // ---- Canvas ----
   _initCanvas(){
     const dpr=window.devicePixelRatio||1;
-    // No padding on touch/mobile — fullscreen. Small padding on desktop for aesthetics.
-    const isTouch='ontouchstart' in window||navigator.maxTouchPoints>0;
-    const pad=isTouch?0:20;
-    const scale=Math.min((window.innerWidth-pad*2)/CONFIG.WIDTH,(window.innerHeight-pad*2)/CONFIG.HEIGHT);
-    this._scale=scale;
-    const cssW=Math.round(CONFIG.WIDTH*scale),cssH=Math.round(CONFIG.HEIGHT*scale);
-    this.canvas.width=Math.round(cssW*dpr);this.canvas.height=Math.round(cssH*dpr);
-    this.canvas.style.width=cssW+'px';this.canvas.style.height=cssH+'px';
-    this.canvas.style.position='fixed';
-    this.canvas.style.left=Math.round((window.innerWidth-cssW)/2)+'px';
-    this.canvas.style.top=Math.round((window.innerHeight-cssH)/2)+'px';
-    this.ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
-    if(this.input)this.input.setScale(scale);
+    // True fullscreen on all devices — no padding, no letterbox
+    CONFIG.WIDTH  = window.innerWidth;
+    CONFIG.HEIGHT = window.innerHeight;
+    this._scale   = 1; // logical px == CSS px, no scaling
+    this.canvas.width  = Math.round(CONFIG.WIDTH  * dpr);
+    this.canvas.height = Math.round(CONFIG.HEIGHT * dpr);
+    this.canvas.style.width  = CONFIG.WIDTH  + 'px';
+    this.canvas.style.height = CONFIG.HEIGHT + 'px';
+    this.canvas.style.position = 'fixed';
+    this.canvas.style.left = '0';
+    this.canvas.style.top  = '0';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if(this.input) this.input.setScale(1);
+    // Clamp player inside new bounds if already playing
+    if(this.player){
+      this.player.x = Math.max(this.player.radius, Math.min(CONFIG.WIDTH  - this.player.radius, this.player.x));
+      this.player.y = Math.max(this.player.radius, Math.min(CONFIG.HEIGHT - this.player.radius, this.player.y));
+    }
   }
 
   // ---- Loop ----
