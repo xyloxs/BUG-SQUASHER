@@ -65,12 +65,13 @@ const CONFIG = {
 // =============================================================================
 const STRINGS = {
   en: {
-    subtitle:      'Rubber duck debugging — taken literally',
-    ctrl_move_t:   'Joystick (left) — move',
-    ctrl_shoot_t:  '🦆 Button — fire',
-    ctrl_move:     'WASD / Arrows — move',
-    ctrl_shoot:    'Mouse aim · Click or Space — shoot',
-    ctrl_pause:    'P — pause',
+    subtitle:      'Rubber duck debugging - taken literally',
+    ctrl_title:    'How to Play',
+    ctrl_move_t:   'Joystick (left side) - move the duck',
+    ctrl_shoot_t:  'Shoot button (right) - fire',
+    ctrl_move:     'WASD or Arrow keys - move the duck',
+    ctrl_shoot:    'Mouse left-click or Space - shoot',
+    ctrl_pause:    'P - pause',
     start_t:       'Tap to start',
     start:         'Click or press Space to start',
     hi_score:      'Best',
@@ -112,12 +113,13 @@ const STRINGS = {
     combo:         'Combo',
   },
   de: {
-    subtitle:      'Rubber-Duck-Debugging — wörtlich genommen',
-    ctrl_move_t:   'Joystick (links) — bewegen',
-    ctrl_shoot_t:  '🦆 Button — schießen',
-    ctrl_move:     'WASD / Pfeile — bewegen',
-    ctrl_shoot:    'Maus zielen · Klick oder Space — schießen',
-    ctrl_pause:    'P — Pause',
+    subtitle:      'Rubber-Duck-Debugging - wörtlich genommen',
+    ctrl_title:    'Steuerung',
+    ctrl_move_t:   'Joystick (links) - Ente bewegen',
+    ctrl_shoot_t:  'Schuss-Button (rechts) - schießen',
+    ctrl_move:     'WASD oder Pfeiltasten - Ente bewegen',
+    ctrl_shoot:    'Maus-Linksklick oder Leertaste - schießen',
+    ctrl_pause:    'P - Pause',
     start_t:       'Tippen zum Starten',
     start:         'Klicken oder Leertaste',
     hi_score:      'Beste',
@@ -164,12 +166,13 @@ const STRINGS = {
     combo:         'Kombo',
   },
   fr: {
-    subtitle:      'Débogage par canard — pris au pied de la lettre',
-    ctrl_move_t:   'Joystick (gauche) — déplacer',
-    ctrl_shoot_t:  'Bouton 🦆 — tirer',
-    ctrl_move:     'WASD / Flèches — déplacer',
-    ctrl_shoot:    'Souris viser · Clic ou Espace — tirer',
-    ctrl_pause:    'P — pause',
+    subtitle:      'Débogage par canard - pris au pied de la lettre',
+    ctrl_title:    'Comment jouer',
+    ctrl_move_t:   'Joystick (gauche) - déplacer le canard',
+    ctrl_shoot_t:  'Bouton tir (droite) - tirer',
+    ctrl_move:     'WASD ou Flèches - déplacer le canard',
+    ctrl_shoot:    'Clic gauche ou Espace - tirer',
+    ctrl_pause:    'P - pause',
     start_t:       'Toucher pour commencer',
     start:         'Clic ou Espace pour commencer',
     hi_score:      'Meilleur',
@@ -216,12 +219,13 @@ const STRINGS = {
     combo:         'Combo',
   },
   es: {
-    subtitle:      'Depuración con pato — tomada literalmente',
-    ctrl_move_t:   'Joystick (izq.) — mover',
-    ctrl_shoot_t:  'Botón 🦆 — disparar',
-    ctrl_move:     'WASD / Flechas — mover',
-    ctrl_shoot:    'Ratón apuntar · Clic o Espacio — disparar',
-    ctrl_pause:    'P — pausa',
+    subtitle:      'Depuración con pato - tomada literalmente',
+    ctrl_title:    'Cómo jugar',
+    ctrl_move_t:   'Joystick (izquierda) - mover el pato',
+    ctrl_shoot_t:  'Botón disparo (derecha) - disparar',
+    ctrl_move:     'WASD o Flechas - mover el pato',
+    ctrl_shoot:    'Clic izquierdo o Espacio - disparar',
+    ctrl_pause:    'P - pausa',
     start_t:       'Toca para comenzar',
     start:         'Clic o Espacio para comenzar',
     hi_score:      'Mejor',
@@ -268,12 +272,13 @@ const STRINGS = {
     combo:         'Combo',
   },
   ar: {
-    subtitle:      'تنقيح البط المطاطي — حرفياً',
-    ctrl_move_t:   'عصا التحكم (يسار) — تحرك',
-    ctrl_shoot_t:  'زر 🦆 — أطلق',
-    ctrl_move:     'WASD / الأسهم — تحرك',
-    ctrl_shoot:    'الفأرة للتصويب · نقر أو مسافة — أطلق',
-    ctrl_pause:    'P — إيقاف مؤقت',
+    subtitle:      'تنقيح البط المطاطي - حرفياً',
+    ctrl_title:    'كيف تلعب',
+    ctrl_move_t:   'عصا التحكم (يسار) - حرك البطة',
+    ctrl_shoot_t:  'زر الإطلاق (يمين) - أطلق',
+    ctrl_move:     'WASD أو الأسهم - حرك البطة',
+    ctrl_shoot:    'نقر أيسر أو مسافة - أطلق',
+    ctrl_pause:    'P - إيقاف مؤقت',
     start_t:       'انقر للبدء',
     start:         'انقر أو اضغط المسافة للبدء',
     hi_score:      'الأفضل',
@@ -463,7 +468,7 @@ class InputManager {
         const p = toLogical(t.clientX, t.clientY);
         this.mouse.x = p.x; this.mouse.y = p.y;
         this._clickConsumed = true; this._actionConsumed = true;
-        const inShootBtn = p.x > CONFIG.WIDTH * 0.65 && p.y > CONFIG.HEIGHT * 0.78 && p.y < CONFIG.HEIGHT - 24;
+        const inShootBtn = p.x > CONFIG.WIDTH * 0.65 && p.y > CONFIG.HEIGHT * 0.60 && p.y < CONFIG.HEIGHT - 26;
         if (inShootBtn) {
           this.touch.shoot = { active: true, id: t.identifier, x: p.x, y: p.y };
         } else {
@@ -1440,8 +1445,8 @@ class Game {
     ctx.restore();
 
     ctx.save();ctx.textBaseline='alphabetic';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
-    if(isRTL()){ctx.textAlign='right';ctx.fillText(T('name_back')+' →',CONFIG.WIDTH-pad,Math.round(CONFIG.HEIGHT*0.92));}
-    else{ctx.textAlign='left';ctx.fillText('← '+T('name_back'),pad,Math.round(CONFIG.HEIGHT*0.92));}
+    if(isRTL()){ctx.textAlign='right';ctx.fillText(T('name_back')+' →',CONFIG.WIDTH-pad,Math.round(CONFIG.HEIGHT*0.88));}
+    else{ctx.textAlign='left';ctx.fillText('← '+T('name_back'),pad,Math.round(CONFIG.HEIGHT*0.88));}
     ctx.restore();
 
     this._vignette(ctx);
@@ -1472,32 +1477,43 @@ class Game {
     ctx.restore();
 
     // Duck
-    this._drawMenuDuck(ctx,cx,Math.round(CONFIG.HEIGHT*0.39),ts);
+    this._drawMenuDuck(ctx,cx,Math.round(CONFIG.HEIGHT*0.37),ts);
 
-    // Controls card — auto-fit text
+    // Controls card — "How to Play" header + instructions
     const ctrlLines=this._isTouchDevice()?[T('ctrl_move_t'),T('ctrl_shoot_t')]:[T('ctrl_move'),T('ctrl_shoot'),T('ctrl_pause')];
-    const ctrlH=ctrlLines.length*22+20,ctrlW=Math.min(360,CONFIG.WIDTH*0.72);
-    const ctrlX=cx-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.56);
+    const titleLine=T('ctrl_title');
+    const ctrlH=26+ctrlLines.length*20+14; // title row 26 + lines + padding
+    const ctrlW=Math.min(380,CONFIG.WIDTH*0.78);
+    const ctrlX=cx-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.54);
     this._card(ctx,ctrlX,ctrlY,ctrlW,ctrlH,12);
-    ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
+    ctx.save();
+    // Title row
+    ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(12,'bold');
+    ctx.fillText(titleLine,cx,ctrlY+17);
+    // Hairline under title
+    ctx.strokeStyle=CONFIG.COLORS.border;ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(ctrlX+16,ctrlY+22);ctx.lineTo(ctrlX+ctrlW-16,ctrlY+22);ctx.stroke();
+    // Instruction lines
+    ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(11);
     ctrlLines.forEach((ln,i)=>{
-      fillTextFit(ctx,ln,cx,ctrlY+14+i*22,ctrlW-24,12);
+      fillTextFit(ctx,ln,cx,ctrlY+36+i*20,ctrlW-28,11);
     });
     ctx.restore();
 
-    // Enemy previews
-    this._drawEnemyPreviews(ctx);
+    // Enemy previews — placed below controls with safe gap
+    this._drawEnemyPreviews(ctx,ctrlY+ctrlH+18);
 
     // Start prompt
     if(Math.floor(ts/600)%2===0){
       ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(14);
-      ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),cx,Math.round(CONFIG.HEIGHT*0.80));
+      ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),cx,Math.round(CONFIG.HEIGHT*0.84));
       ctx.restore();
     }
 
     if(this.highScore>0){
-      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
-      ctx.fillText(T('hi_score')+': '+this.highScore,cx,Math.round(CONFIG.HEIGHT*0.86));
+      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
+      ctx.fillText(T('hi_score')+': '+this.highScore,cx,Math.round(CONFIG.HEIGHT*0.87));
       ctx.restore();
     }
 
@@ -1530,8 +1546,8 @@ class Game {
     ctx.restore();
   }
 
-  _drawEnemyPreviews(ctx){
-    const y=Math.round(CONFIG.HEIGHT*0.71);
+  _drawEnemyPreviews(ctx,y){
+    y=y||Math.round(CONFIG.HEIGHT*0.71);
     const keys=['enemy_spider','enemy_snake','enemy_octopus','enemy_ghost'];
     const colors=[CONFIG.COLORS.spider,CONFIG.COLORS.snake,CONFIG.COLORS.octopus,CONFIG.COLORS.ghost];
     const colW=CONFIG.WIDTH/4;
@@ -1623,7 +1639,7 @@ class Game {
     ctx.textAlign='center';ctx.textBaseline='bottom';
     ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
     const wt=this.waves.state==='gap'?(this.waves.wave===0?T('get_ready'):T('wave_in',this.waves.wave+1)):T('wave',this.waves.wave);
-    fillTextFit(ctx,wt,CONFIG.WIDTH/2,CONFIG.HEIGHT-8,CONFIG.WIDTH-120,12);
+    fillTextFit(ctx,wt,CONFIG.WIDTH/2,CONFIG.HEIGHT-30,CONFIG.WIDTH-120,12);
     ctx.restore();
   }
 
@@ -1640,8 +1656,9 @@ class Game {
       ctx.fillStyle='rgba(255,255,255,0.25)';
       ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);ctx.fill();
     }
-    // Shoot button
-    const btnR=44,btnX=CONFIG.WIDTH-btnR-24,btnY=CONFIG.HEIGHT-btnR-24,pressed=s.active;
+    // Shoot button — raised above footer (footer = 22px)
+    const footerH=22;
+    const btnR=44,btnX=CONFIG.WIDTH-btnR-24,btnY=CONFIG.HEIGHT-footerH-btnR-14,pressed=s.active;
     ctx.strokeStyle=pressed?CONFIG.COLORS.player:'rgba(255,255,255,0.3)';
     ctx.lineWidth=2.5;
     ctx.beginPath();ctx.arc(btnX,btnY,btnR,0,Math.PI*2);ctx.stroke();
@@ -1702,12 +1719,12 @@ class Game {
     // Restart prompt (flashing)
     if(guardElapsed && Math.floor(ts/600)%2===0){
       ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
-      fillTextFit(ctx,this._isTouchDevice()?T('restart_t'):T('restart'),cx,Math.round(CONFIG.HEIGHT*0.92),CONFIG.WIDTH-80,13);
+      fillTextFit(ctx,this._isTouchDevice()?T('restart_t'):T('restart'),cx,Math.round(CONFIG.HEIGHT*0.88),CONFIG.WIDTH-80,13);
     }
 
     // "Play as different player" link — always visible after guard
     if(guardElapsed){
-      const linkY = Math.round(CONFIG.HEIGHT*0.965);
+      const linkY = Math.round(CONFIG.HEIGHT*0.925);
       const linkText = T('new_player');
       ctx.font = F(11);
       const linkW = Math.min(ctx.measureText(linkText).width + 24, CONFIG.WIDTH - 60);
@@ -1737,7 +1754,7 @@ class Game {
     // Credit line
     ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=`10px ${MONO}`;ctx.globalAlpha=0.45;
-    ctx.fillText('🦆 Rubber Duck Debugging — a real technique since the 1990s',CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.987));
+    ctx.fillText('🦆 Rubber Duck Debugging — a real technique since the 1990s',CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.945));
     ctx.globalAlpha=1;ctx.restore();
     ctx.restore();
 
