@@ -432,6 +432,7 @@ class InputManager {
     this._spaceHeld      = false;
     this._scale          = 1;
     this._touchEverUsed  = false;
+    this._autoAimAngle   = null;
     this._bindKeyboard();
     this._bindMouse(canvas);
     this._bindTouch(canvas);
@@ -524,11 +525,17 @@ class InputManager {
     return { x: 0, y: 0 };
   }
   getAimAngle(px, py) {
+    // Touch: auto-aim at nearest enemy (set by Game each frame)
+    if ((this.touch.shoot.active || this._spaceHeld) && this._autoAimAngle !== null) {
+      return this._autoAimAngle;
+    }
     if (this.touch.shoot.active) return this._lastMoveAngle;
     const d = Math.hypot(this.mouse.x - px, this.mouse.y - py);
     if (d > 5) return Math.atan2(this.mouse.y - py, this.mouse.x - px);
     return this._lastMoveAngle;
   }
+  setAutoAim(angle) { this._autoAimAngle = angle; }
+  clearAutoAim()    { this._autoAimAngle = null; }
   isShootingHeld() { return this.mouse.down || this.touch.shoot.active || this._spaceHeld; }
   consumePause()   { const v = this._pauseConsumed;  this._pauseConsumed  = false; return v; }
   consumeAction()  { const v = this._actionConsumed; this._actionConsumed = false; return v; }
@@ -891,6 +898,7 @@ class Game {
     this.leaderboard=this._loadLocalScores();
     this.scoreSubmitted=false;this.submittingScore=false;
     this._langCards=[];this._newPlayerLinkBounds=null;
+    this._autoAimTarget=null;
     this._wireNameInput();
     this._initCanvas();
     window.addEventListener('resize',()=>this._initCanvas());
@@ -1026,6 +1034,23 @@ class Game {
     this.waves.injectPlayer(this.player);
     if(this.input.isShootingHeld()){const b=this.player.tryShoot(this.audio);if(b)this.bullets.push(b);}
     this.player.update(dt,this.input);
+
+    // Auto-aim on touch: find nearest enemy each frame, set angle on input
+    if(this._isTouchDevice()&&this.enemies.length>0){
+      let nearest=null,minDist=Infinity;
+      for(const e of this.enemies){
+        if(e.dead)continue;
+        const d=Math.hypot(e.x-this.player.x,e.y-this.player.y);
+        if(d<minDist){minDist=d;nearest=e;}
+      }
+      if(nearest){
+        this.input.setAutoAim(Math.atan2(nearest.y-this.player.y,nearest.x-this.player.x));
+        this._autoAimTarget=nearest;
+      }
+    } else {
+      this.input.clearAutoAim();
+      this._autoAimTarget=null;
+    }
     for(const b of this.bullets)b.update(dt);
     for(const e of this.enemies)e.update(dt,this.player);
     this.waves.update(dt,this.enemies,this.audio);
@@ -1078,6 +1103,55 @@ class Game {
     this.ps.emit(enemy.x,enemy.y,CONFIG.COLORS.gold,2,{speedMin:80,speedMax:180,lifeMin:200,lifeMax:450,radiusMin:1,radiusMax:2});
     this.audio.playPop();this._shake(4);
   }
+  _drawAimBeam(ctx, target){
+    const px=this.player.x, py=this.player.y;
+    const tx=target.x, ty=target.y;
+    const angle=Math.atan2(ty-py,tx-px);
+    const dist=Math.hypot(tx-px,ty-py);
+    // Stop beam just before the enemy edge
+    const beamEnd=Math.max(0,dist-target.radius-4);
+
+    ctx.save();
+    ctx.globalAlpha=0.55;
+
+    // Dashed beam line
+    ctx.strokeStyle=CONFIG.COLORS.player;
+    ctx.lineWidth=1.2;
+    ctx.setLineDash([6,5]);
+    ctx.lineDashOffset=-(Date.now()*0.04)%11; // animated march
+    ctx.beginPath();
+    ctx.moveTo(px+Math.cos(angle)*(this.player.radius+4),
+               py+Math.sin(angle)*(this.player.radius+4));
+    ctx.lineTo(px+Math.cos(angle)*beamEnd,
+               py+Math.sin(angle)*beamEnd);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Pulsing target ring on enemy
+    const pulse=0.55+0.45*Math.abs(Math.sin(Date.now()*0.004));
+    ctx.globalAlpha=pulse*0.7;
+    ctx.strokeStyle=CONFIG.COLORS.player;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(tx,ty,target.radius+6,0,Math.PI*2);
+    ctx.stroke();
+
+    // Small arrow head near target
+    ctx.globalAlpha=0.7;
+    ctx.fillStyle=CONFIG.COLORS.player;
+    const ax=px+Math.cos(angle)*(beamEnd-2);
+    const ay=py+Math.sin(angle)*(beamEnd-2);
+    const aw=5,al=8;
+    ctx.beginPath();
+    ctx.moveTo(ax+Math.cos(angle)*al, ay+Math.sin(angle)*al);
+    ctx.lineTo(ax+Math.cos(angle+Math.PI*0.7)*aw, ay+Math.sin(angle+Math.PI*0.7)*aw);
+    ctx.lineTo(ax+Math.cos(angle-Math.PI*0.7)*aw, ay+Math.sin(angle-Math.PI*0.7)*aw);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   _drawShootHint(ts){
     if(!this._shootHint||!this._shootHint.active)return;
     if(this.waves.wave>1)return;
@@ -1619,6 +1693,10 @@ class Game {
     this.ps.draw(ctx);
     for(const e of this.enemies)e.draw(ctx);
     for(const b of this.bullets)b.draw(ctx);
+    // Auto-aim target beam (touch only, drawn above enemies but below player)
+    if(this._isTouchDevice()&&this._autoAimTarget&&!this._autoAimTarget.dead){
+      this._drawAimBeam(ctx,this._autoAimTarget);
+    }
     this.player.draw(ctx);
     // Shoot hint — only wave 1, before first kill
     this._drawShootHint(ts);
