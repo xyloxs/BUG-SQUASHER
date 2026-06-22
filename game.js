@@ -433,11 +433,13 @@ class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const p = toCanvas(t.clientX, t.clientY);
+        // Always register as click/action so menu screens respond to any tap
+        this._clickConsumed = true;
+        this._actionConsumed = true;
         if (p.x < CONFIG.WIDTH / 2) {
           this.touch.joystick = { active: true, id: t.identifier, startX: p.x, startY: p.y, curX: p.x, curY: p.y };
         } else {
           this.touch.shoot = { active: true, id: t.identifier, x: p.x, y: p.y };
-          this._clickConsumed = true; this._actionConsumed = true;
         }
       }
     }, { passive: false });
