@@ -17,14 +17,14 @@ const CONFIG = {
   PLAYER_SPEED:         260,
   PLAYER_RADIUS:        18,
   PLAYER_MAX_HP:        5,
-  PLAYER_INVINCIBLE_MS: 1200,
-  BULLET_SPEED:         500,
+  PLAYER_INVINCIBLE_MS: 700,   // was 1200 — less grace time after hit
+  BULLET_SPEED:         520,
   BULLET_RADIUS:        5,
-  SHOOT_COOLDOWN:       130,
+  SHOOT_COOLDOWN:       200,   // was 130 — ~35% slower fire rate
 
   COMBO_RESET_MS:  3000,
   SHAKE_DECAY:     0.82,
-  WAVE_GAP_MS:     1800,
+  WAVE_GAP_MS:     1200,   // was 1800 — shorter breather between waves
 
   BASE_SCORES: { Spider: 10, Snake: 15, Octopus: 20, Ghost: 25 },
   MASTER_VOLUME:   0.28,
@@ -684,7 +684,7 @@ class Player extends Entity {
 class Spider extends Entity {
   constructor(x,y){
     super(x,y,14);
-    this.hp=2;this.speed=110+Math.random()*40;
+    this.hp=3;this.speed=155+Math.random()*55;  // was hp=2, speed=110-150
     this.legPhase=Math.random()*Math.PI*2;this.color=CONFIG.COLORS.spider;
   }
   update(dt,player){
@@ -716,7 +716,7 @@ class Spider extends Entity {
 class Snake extends Entity {
   constructor(x,y,player){
     super(x,y,10);
-    this.hp=1;this.speed=210+Math.random()*60;
+    this.hp=1;this.speed=290+Math.random()*80;  // was 210-270
     this.sinePhase=0;this.baseAngle=Math.atan2(player.y-y,player.x-x);
     this.color=CONFIG.COLORS.snake;this.spineX=x;this.spineY=y;
   }
@@ -760,10 +760,10 @@ class Snake extends Entity {
 class Octopus extends Entity {
   constructor(x,y){
     super(x,y,16);
-    this.hp=4;this.orbitAngle=Math.atan2(y-CONFIG.HEIGHT/2,x-CONFIG.WIDTH/2);
+    this.hp=5;this.orbitAngle=Math.atan2(y-CONFIG.HEIGHT/2,x-CONFIG.WIDTH/2);   // was hp=4
     this.orbitRadius=Math.min(CONFIG.WIDTH,CONFIG.HEIGHT)*0.42;
-    this.orbitSpeed=0.55+Math.random()*0.25;
-    this.chargeTimer=2000+Math.random()*1200;
+    this.orbitSpeed=0.65+Math.random()*0.3;   // was 0.55-0.80
+    this.chargeTimer=1400+Math.random()*800;  // was 2000-3200
     this.charging=false;this.chargeVx=0;this.chargeVy=0;this.chargeDuration=0;
     this.tentaclePhase=Math.random()*Math.PI*2;this.color=CONFIG.COLORS.octopus;
   }
@@ -773,7 +773,7 @@ class Octopus extends Entity {
       this.x+=this.chargeVx*dt*0.001;this.y+=this.chargeVy*dt*0.001;
       this.chargeVx+=(player.x-this.x)*0.05;this.chargeVy+=(player.y-this.y)*0.05;
       this.chargeDuration-=dt;
-      if(this.chargeDuration<=0){this.charging=false;this.chargeTimer=2000+Math.random()*1200;this.orbitAngle=Math.atan2(this.y-CONFIG.HEIGHT/2,this.x-CONFIG.WIDTH/2);}
+      if(this.chargeDuration<=0){this.charging=false;this.chargeTimer=1400+Math.random()*800;this.orbitAngle=Math.atan2(this.y-CONFIG.HEIGHT/2,this.x-CONFIG.WIDTH/2);}  // was 2000-3200
     } else {
       this.orbitRadius=Math.min(CONFIG.WIDTH,CONFIG.HEIGHT)*0.42;
       this.orbitAngle+=this.orbitSpeed*dt*0.001;
@@ -810,7 +810,7 @@ class Octopus extends Entity {
 class Ghost extends Entity {
   constructor(x,y){
     super(x,y,14);
-    this.hp=3;this.speed=44+Math.random()*16;
+    this.hp=3;this.speed=65+Math.random()*25;  // was 44-60 — noticeably faster
     this.floatPhase=Math.random()*Math.PI*2;this.color=CONFIG.COLORS.ghost;
   }
   update(dt,player){
@@ -850,13 +850,17 @@ class WaveManager {
   }
   _buildWave(){
     const w=this.wave,types=[];
-    const nSp=Math.min(3+w,10),nSn=Math.max(0,Math.floor((w+1)/2)),nOc=Math.max(0,Math.floor((w-2)/2)),nGh=Math.max(0,Math.floor((w-3)/3));
+    // Snakes from wave 1, octopus from wave 2, ghosts from wave 3
+    const nSp=Math.min(2+w,9);
+    const nSn=Math.max(0,w);                        // 1 snake wave 1, scales linearly
+    const nOc=Math.max(0,Math.floor((w-1)/2));      // first octopus wave 2
+    const nGh=Math.max(0,Math.floor((w-2)/3));      // first ghost wave 3
     for(let i=0;i<nSp;i++)types.push('Spider');
     for(let i=0;i<nSn;i++)types.push('Snake');
     for(let i=0;i<nOc;i++)types.push('Octopus');
     for(let i=0;i<nGh;i++)types.push('Ghost');
     for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]];}
-    this.spawnQueue=types.map((type,i)=>({type,timer:i*250,player:null}));
+    this.spawnQueue=types.map((type,i)=>({type,timer:i*160,player:null}));  // was 250ms
     this.enemiesThisWave=types.length;
   }
   _spawnEnemy(type,playerRef){
