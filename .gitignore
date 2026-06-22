@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea/
+*.swp
+
+# Secrets / local config
+.env
+*.env.local
+
+# Node (if needed later)
+node_modules/
+dist/
