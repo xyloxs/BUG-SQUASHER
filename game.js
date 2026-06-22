@@ -1495,84 +1495,144 @@ class Game {
   }
 
   _drawLeaderboard(ctx){
-    const TOP_N=10;
-    const panelPad=14,lineH=Math.min(20,CONFIG.HEIGHT*0.028);
-    const maxVisible=Math.min(TOP_N,Math.floor((CONFIG.HEIGHT*0.44)/lineH));
-    const myIdx=this.leaderboard.findIndex(e=>e.name===this.playerName&&e.score===this.score);
-    const topEntries=this.leaderboard.slice(0,maxVisible);
-    const showOwnBelow=myIdx>=maxVisible;
+    const TOP_N    = 10;
+    const panelPad = 14;
+    const lineH    = Math.min(20, CONFIG.HEIGHT * 0.028); // normal row height
+    const myLineH  = lineH + 8;                           // own row is taller
 
-    const rowCount=topEntries.length+(showOwnBelow?2:0);
-    const headerH=28,panelH=headerH+rowCount*lineH+panelPad*2+(this.submittingScore?lineH:0);
-    const panelW=Math.min(400,CONFIG.WIDTH*0.82),panelX=CONFIG.WIDTH/2-panelW/2,panelY=Math.round(CONFIG.HEIGHT*0.41);
+    const maxVisible = Math.min(TOP_N, Math.floor((CONFIG.HEIGHT * 0.44) / lineH));
+    const myIdx      = this.leaderboard.findIndex(e => e.name === this.playerName && e.score === this.score);
+    const topEntries = this.leaderboard.slice(0, maxVisible);
+    const showOwnBelow = myIdx >= maxVisible;
 
-    this._glassPanel(ctx,panelX,panelY,panelW,panelH,16);
+    // Panel height accounts for variable row heights
+    const bodyH = topEntries.reduce((sum, _, i) => sum + (i === myIdx ? myLineH : lineH), 0)
+                + (showOwnBelow ? lineH + myLineH + 4 : 0)  // separator + own row
+                + (this.submittingScore ? lineH : 0);
+    const headerH = 28;
+    const panelH  = headerH + bodyH + panelPad * 2;
+    const panelW  = Math.min(400, CONFIG.WIDTH * 0.82);
+    const panelX  = CONFIG.WIDTH / 2 - panelW / 2;
+    const panelY  = Math.round(CONFIG.HEIGHT * 0.41);
 
-    const rtl=isRTL();
-    const colRank  = rtl?(panelX+panelW-panelPad-18):(panelX+panelPad+18);
-    const colName  = rtl?(panelX+panelW-panelPad-44):(panelX+panelPad+44);
-    const colScore = rtl?(panelX+panelPad+60)        :(panelX+panelW-panelPad-60);
-    const colWave  = rtl?(panelX+panelPad)            :(panelX+panelW-panelPad);
+    this._glassPanel(ctx, panelX, panelY, panelW, panelH, 16);
+
+    const rtl     = isRTL();
+    const colRank  = rtl ? (panelX + panelW - panelPad - 18) : (panelX + panelPad + 18);
+    const colName  = rtl ? (panelX + panelW - panelPad - 44) : (panelX + panelPad + 44);
+    const colScore = rtl ? (panelX + panelPad + 60)           : (panelX + panelW - panelPad - 60);
+    const colWave  = rtl ? (panelX + panelPad)                : (panelX + panelW - panelPad);
 
     ctx.save();
-    ctx.textBaseline='alphabetic';ctx.textAlign='center';
-    ctx.fillStyle=CONFIG.COLORS.accent;ctx.font=F(12,'bold');
-    ctx.fillText(T('leaderboard').toUpperCase(),CONFIG.WIDTH/2,panelY+headerH-4);
-    ctx.strokeStyle=CONFIG.COLORS.border;ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(panelX+panelPad,panelY+headerH);ctx.lineTo(panelX+panelW-panelPad,panelY+headerH);ctx.stroke();
 
-    if(this.submittingScore){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
-      ctx.fillText(T('submitting'),CONFIG.WIDTH/2,panelY+headerH+lineH);
-      ctx.restore();return;
+    // Header
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+    ctx.fillStyle = CONFIG.COLORS.accent; ctx.font = F(12, 'bold');
+    ctx.fillText(T('leaderboard').toUpperCase(), CONFIG.WIDTH / 2, panelY + headerH - 4);
+    ctx.strokeStyle = CONFIG.COLORS.border; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(panelX + panelPad, panelY + headerH); ctx.lineTo(panelX + panelW - panelPad, panelY + headerH); ctx.stroke();
+
+    if (this.submittingScore) {
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textSec; ctx.font = F(12);
+      ctx.fillText(T('submitting'), CONFIG.WIDTH / 2, panelY + headerH + lineH);
+      ctx.restore(); return;
     }
-    if(topEntries.length===0){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
-      ctx.fillText(T('lb_empty'),CONFIG.WIDTH/2,panelY+headerH+lineH);
-      ctx.restore();return;
+    if (topEntries.length === 0) {
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = F(12);
+      ctx.fillText(T('lb_empty'), CONFIG.WIDTH / 2, panelY + headerH + lineH);
+      ctx.restore(); return;
     }
 
-    topEntries.forEach((entry,i)=>{
-      const y=panelY+headerH+(i+1)*lineH+2;
-      const isMe=i===myIdx;
-      ctx.textBaseline='alphabetic';
-      // Rank
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=isMe?CONFIG.COLORS.gold:CONFIG.COLORS.textDim;
-      ctx.font=isMe?F(11,'bold'):F(11);ctx.fillText('#'+(i+1),colRank,y);
-      // Name
-      ctx.textAlign=rtlAlign('left');ctx.fillStyle=isMe?CONFIG.COLORS.gold:(i===0?CONFIG.COLORS.textPri:CONFIG.COLORS.textSec);
-      ctx.font=isMe||i===0?F(11,'bold'):F(11);ctx.fillText(entry.name||'???',colName,y);
-      // You tag
-      if(isMe){
-        const nameW=ctx.measureText(entry.name||'???').width;
-        const tagX=rtl?(colName-nameW-6):(colName+nameW+6);
-        ctx.textAlign=rtlAlign('left');ctx.fillStyle='rgba(255,215,0,0.5)';ctx.font=F(10);
-        ctx.fillText(T('lb_you'),tagX,y);
+    // Draw rows with cumulative y offset
+    let yOff = panelY + headerH + panelPad;
+    topEntries.forEach((entry, i) => {
+      const isMe  = i === myIdx;
+      const rowH  = isMe ? myLineH : lineH;
+      const textY = yOff + rowH * 0.72; // baseline within row
+
+      // Highlight background for own row
+      if (isMe) {
+        ctx.save();
+        this._roundRect(ctx, panelX + 6, yOff, panelW - 12, rowH, 8);
+        ctx.fillStyle = 'rgba(255,215,0,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,215,0,0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
       }
+
+      const rankFs = isMe ? 13 : 11;
+      const nameFs = isMe ? 13 : 11;
+
+      ctx.textBaseline = 'alphabetic';
+
+      // Rank
+      ctx.textAlign = rtlAlign('right');
+      ctx.fillStyle = isMe ? CONFIG.COLORS.gold : CONFIG.COLORS.textDim;
+      ctx.font      = isMe ? F(rankFs, 'bold') : F(rankFs);
+      ctx.fillText('#' + (i + 1), colRank, textY);
+
+      // Name
+      ctx.textAlign = rtlAlign('left');
+      ctx.fillStyle = isMe ? CONFIG.COLORS.gold : (i === 0 ? CONFIG.COLORS.textPri : CONFIG.COLORS.textSec);
+      ctx.font      = isMe || i === 0 ? F(nameFs, 'bold') : F(nameFs);
+      ctx.fillText(entry.name || '???', colName, textY);
+
+      // "You" tag
+      if (isMe) {
+        const nameW = ctx.measureText(entry.name || '???').width;
+        const tagX  = rtl ? (colName - nameW - 6) : (colName + nameW + 6);
+        ctx.textAlign = rtlAlign('left');
+        ctx.fillStyle = 'rgba(255,215,0,0.6)';
+        ctx.font      = F(10);
+        ctx.fillText(T('lb_you'), tagX, textY);
+      }
+
       // Score
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=isMe?CONFIG.COLORS.gold:CONFIG.COLORS.textSec;
-      ctx.font=isMe?`bold 11px ${MONO}`:`11px ${MONO}`;ctx.fillText(entry.score,colScore,y);
+      ctx.textAlign = rtlAlign('right');
+      ctx.fillStyle = isMe ? CONFIG.COLORS.gold : CONFIG.COLORS.textSec;
+      ctx.font      = isMe ? `bold ${nameFs}px ${MONO}` : `11px ${MONO}`;
+      ctx.fillText(entry.score, colScore, textY);
+
       // Wave
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(10);
-      ctx.fillText(T('lb_wave')+' '+(entry.wave||'?'),colWave,y);
+      ctx.textAlign = rtlAlign('right');
+      ctx.fillStyle = isMe ? 'rgba(255,215,0,0.6)' : CONFIG.COLORS.textDim;
+      ctx.font      = F(isMe ? 11 : 10);
+      ctx.fillText(T('lb_wave') + ' ' + (entry.wave || '?'), colWave, textY);
+
+      yOff += rowH;
     });
 
-    if(showOwnBelow){
-      const sepY=panelY+headerH+(topEntries.length+0.7)*lineH+4;
-      ctx.strokeStyle=CONFIG.COLORS.border;ctx.lineWidth=1;ctx.setLineDash([4,4]);
-      ctx.beginPath();ctx.moveTo(panelX+panelPad,sepY);ctx.lineTo(panelX+panelW-panelPad,sepY);ctx.stroke();
+    // Own entry below top N
+    if (showOwnBelow) {
+      const sepY = yOff + 4;
+      ctx.strokeStyle = CONFIG.COLORS.border; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(panelX + panelPad, sepY); ctx.lineTo(panelX + panelW - panelPad, sepY); ctx.stroke();
       ctx.setLineDash([]);
-      const own=this.leaderboard[myIdx],ownY=sepY+lineH;
-      ctx.textBaseline='alphabetic';
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(11,'bold');ctx.fillText('#'+(myIdx+1),colRank,ownY);
-      ctx.textAlign=rtlAlign('left');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(11,'bold');ctx.fillText(own.name||'???',colName,ownY);
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=`bold 11px ${MONO}`;ctx.fillText(own.score,colScore,ownY);
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(10);ctx.fillText(T('lb_wave')+' '+(own.wave||'?'),colWave,ownY);
+      yOff = sepY + 4;
+
+      const own   = this.leaderboard[myIdx];
+      const rowH  = myLineH;
+      const textY = yOff + rowH * 0.72;
+
+      // Highlight background
+      ctx.save();
+      this._roundRect(ctx, panelX + 6, yOff, panelW - 12, rowH, 8);
+      ctx.fillStyle = 'rgba(255,215,0,0.08)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,215,0,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = rtlAlign('right');  ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = F(13, 'bold'); ctx.fillText('#' + (myIdx + 1), colRank, textY);
+      ctx.textAlign = rtlAlign('left');   ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = F(13, 'bold'); ctx.fillText(own.name || '???', colName, textY);
+      ctx.textAlign = rtlAlign('right');  ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = `bold 13px ${MONO}`; ctx.fillText(own.score, colScore, textY);
+      ctx.textAlign = rtlAlign('right');  ctx.fillStyle = 'rgba(255,215,0,0.6)'; ctx.font = F(11); ctx.fillText(T('lb_wave') + ' ' + (own.wave || '?'), colWave, textY);
     }
 
-    if(!CONFIG.LEADERBOARD_URL){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(9);
-      ctx.fillText(T('lb_offline'),CONFIG.WIDTH/2,panelY+panelH-5);
+    if (!CONFIG.LEADERBOARD_URL) {
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = F(9);
+      ctx.fillText(T('lb_offline'), CONFIG.WIDTH / 2, panelY + panelH - 5);
     }
     ctx.restore();
   }
