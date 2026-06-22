@@ -108,10 +108,10 @@ const STRINGS = {
     lb_empty:      'No scores yet',
     lb_you:        'You',
     new_player:    'Play as a different player',
-    enemy_spider:  'Null Pointer Spider',
-    enemy_snake:   'Segfault Snake',
-    enemy_octopus: 'Infinite Loop ∞',
-    enemy_ghost:   'Memory Leak Ghost',
+    enemy_spider:  'Grandpa with Walker',
+    enemy_snake:   'Grandma on Scooter',
+    enemy_octopus: 'Grumpy Grandpa',
+    enemy_ghost:   'Sleepwalking Granny',
     combo:         'BONUS',
   },
   de: {
@@ -162,10 +162,10 @@ const STRINGS = {
     lb_empty:      'Noch keine Einträge',
     lb_you:        'Du',
     new_player:    'Als anderer Spieler starten',
-    enemy_spider:  'Null-Pointer-Spinne',
-    enemy_snake:   'Segfault-Schlange',
-    enemy_octopus: 'Endlosschleife ∞',
-    enemy_ghost:   'Speicherleck-Geist',
+    enemy_spider:  'Opa mit Rollator',
+    enemy_snake:   'Oma auf Scooter',
+    enemy_octopus: 'Grummeliger Opa',
+    enemy_ghost:   'Schlafwandel-Oma',
     combo:         'BONUS',
   },
   fr: {
@@ -216,10 +216,10 @@ const STRINGS = {
     lb_empty:      'Pas encore de scores',
     lb_you:        'Vous',
     new_player:    'Jouer avec un autre profil',
-    enemy_spider:  'Araignée Null Pointer',
-    enemy_snake:   'Serpent Segfault',
-    enemy_octopus: 'Boucle infinie ∞',
-    enemy_ghost:   'Fantôme fuite mémoire',
+    enemy_spider:  'Papi avec déambulateur',
+    enemy_snake:   'Mamie en scooter',
+    enemy_octopus: 'Papy grincheux',
+    enemy_ghost:   'Mamie somnambule',
     combo:         'BONUS',
   },
   es: {
@@ -270,10 +270,10 @@ const STRINGS = {
     lb_empty:      'Sin puntuaciones aún',
     lb_you:        'Tú',
     new_player:    'Jugar con otro jugador',
-    enemy_spider:  'Araña Null Pointer',
-    enemy_snake:   'Serpiente Segfault',
-    enemy_octopus: 'Bucle infinito ∞',
-    enemy_ghost:   'Fantasma fuga de mem.',
+    enemy_spider:  'Abuelo con andador',
+    enemy_snake:   'Abuela en scooter',
+    enemy_octopus: 'Abuelo gruñón',
+    enemy_ghost:   'Abuela sonámbula',
     combo:         'BONUS',
   },
   ar: {
@@ -324,10 +324,10 @@ const STRINGS = {
     lb_empty:      'لا توجد نتائج بعد',
     lb_you:        'أنت',
     new_player:    'اللعب باسم مختلف',
-    enemy_spider:  'عنكبوت Null Pointer',
-    enemy_snake:   'ثعبان Segfault',
-    enemy_octopus: 'حلقة لا نهاية لها ∞',
-    enemy_ghost:   'شبح تسرب الذاكرة',
+    enemy_spider:  'جد بمشاية',
+    enemy_snake:   'جدة على سكوتر',
+    enemy_octopus: 'جد غاضب',
+    enemy_ghost:   'جدة سائرة بالنوم',
     combo:         'BONUS',
   },
 };
@@ -2032,15 +2032,15 @@ class Game {
     fillTextFit(ctx,T('subtitle'),cx,Math.round(CONFIG.HEIGHT*0.14)+24,CONFIG.WIDTH-60,14);
     ctx.restore();
 
-    // Duck
-    this._drawMenuDuck(ctx,cx,Math.round(CONFIG.HEIGHT*0.37),ts);
+    // Duck — moved lower for tighter layout
+    this._drawMenuDuck(ctx,cx,Math.round(CONFIG.HEIGHT*0.43),ts);
 
     // Controls card — "How to Play" header + instructions
     const ctrlLines=this._isTouchDevice()?[T('ctrl_move_t'),T('ctrl_shoot_t')]:[T('ctrl_move'),T('ctrl_shoot'),T('ctrl_pause')];
     const titleLine=T('ctrl_title');
     const ctrlH=26+ctrlLines.length*20+14; // title row 26 + lines + padding
     const ctrlW=Math.min(380,CONFIG.WIDTH*0.78);
-    const ctrlX=cx-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.54);
+    const ctrlX=cx-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.60);
     this._card(ctx,ctrlX,ctrlY,ctrlW,ctrlH,12);
     ctx.save();
     // Title row
