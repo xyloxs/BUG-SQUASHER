@@ -112,7 +112,7 @@ const STRINGS = {
     enemy_snake:   'Segfault Snake',
     enemy_octopus: 'Infinite Loop ∞',
     enemy_ghost:   'Memory Leak Ghost',
-    combo:         'Combo',
+    combo:         'BONUS',
   },
   de: {
     subtitle:      'Rubber-Duck-Debugging - wörtlich genommen',
@@ -166,7 +166,7 @@ const STRINGS = {
     enemy_snake:   'Segfault-Schlange',
     enemy_octopus: 'Endlosschleife ∞',
     enemy_ghost:   'Speicherleck-Geist',
-    combo:         'Kombo',
+    combo:         'BONUS',
   },
   fr: {
     subtitle:      'Débogage par canard - pris au pied de la lettre',
@@ -220,7 +220,7 @@ const STRINGS = {
     enemy_snake:   'Serpent Segfault',
     enemy_octopus: 'Boucle infinie ∞',
     enemy_ghost:   'Fantôme fuite mémoire',
-    combo:         'Combo',
+    combo:         'BONUS',
   },
   es: {
     subtitle:      'Depuración con pato - tomada literalmente',
@@ -274,7 +274,7 @@ const STRINGS = {
     enemy_snake:   'Serpiente Segfault',
     enemy_octopus: 'Bucle infinito ∞',
     enemy_ghost:   'Fantasma fuga de mem.',
-    combo:         'Combo',
+    combo:         'BONUS',
   },
   ar: {
     subtitle:      'تنقيح البط المطاطي - حرفياً',
@@ -328,7 +328,7 @@ const STRINGS = {
     enemy_snake:   'ثعبان Segfault',
     enemy_octopus: 'حلقة لا نهاية لها ∞',
     enemy_ghost:   'شبح تسرب الذاكرة',
-    combo:         'كومبو',
+    combo:         'BONUS',
   },
 };
 
@@ -1174,7 +1174,7 @@ class Game {
     ctx.fillStyle=CONFIG.COLORS.gold;
     ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=20;
     ctx.font=F(18,'bold');
-    fillTextFit(ctx,T('hint_shoot'),CONFIG.WIDTH/2,CONFIG.HEIGHT/2+60,CONFIG.WIDTH-80,18,'bold');
+    fillTextFit(ctx,T('hint_shoot'),CONFIG.WIDTH/2,CONFIG.HEIGHT/2+60,CONFIG.WIDTH-80,12,'bold');
     ctx.shadowBlur=0;ctx.globalAlpha=1;
     ctx.restore();
   }
@@ -1422,7 +1422,7 @@ class Game {
       ctx.save();ctx.globalAlpha=l2alpha;
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=10;
-      ctx.font=F(22,'bold');
+      ctx.font=F(20,'bold');
       const l2full=T('intro_line2');
       const l2chars=Math.floor(((elapsed-1.4)/0.7)*l2full.length);
       ctx.fillText(l2full.slice(0,Math.min(l2chars,l2full.length)),cx,cy+62);
@@ -1434,7 +1434,7 @@ class Game {
     if(ctaAlpha>0){
       ctx.save();ctx.globalAlpha=ctaAlpha;
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
+      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
       ctx.fillText(T('intro_cta'),cx,cy+106);
       ctx.restore();
     }
@@ -1464,7 +1464,7 @@ class Game {
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(24,'bold');
       ctx.fillText(T('paused'),CONFIG.WIDTH/2,cy+32);
-      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
+      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
       fillTextFit(ctx,this._isTouchDevice()?T('resume_t'):T('resume'),CONFIG.WIDTH/2,cy+62,cw-24,13);
       ctx.restore();
       if(this.input.consumePause())this.toResumed();
@@ -1483,7 +1483,7 @@ class Game {
     ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.fillStyle=CONFIG.COLORS.player;ctx.shadowColor=CONFIG.COLORS.player;ctx.shadowBlur=16;
     ctx.font=F(40,'bold');ctx.fillText('BUG SQUASHER',CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.14));
-    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(15);
+    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
     ctx.fillText(T('lang_title'),CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.14)+26);
     ctx.restore();
 
@@ -1523,7 +1523,7 @@ class Game {
       ctx.restore();
     });
 
-    ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
+    ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
     fillTextFit(ctx,T('lang_sub'),CONFIG.WIDTH/2,startY+rows*(cardH+gapY)+20,CONFIG.WIDTH-60,11);
     ctx.restore();
     this._vignette(ctx);
@@ -1546,9 +1546,9 @@ class Game {
 
     ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.fillStyle=CONFIG.COLORS.textPri;ctx.shadowColor=CONFIG.COLORS.player;ctx.shadowBlur=12;
-    ctx.font=F(32,'bold');
+    ctx.font=F(20,'bold');
     fillTextFit(ctx,T('name_title'),cx,Math.round(CONFIG.HEIGHT*0.28),CONFIG.WIDTH-80,32,'bold');
-    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(14);
+    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
     fillTextFit(ctx,T('name_sub'),cx,Math.round(CONFIG.HEIGHT*0.28)+26,CONFIG.WIDTH-80,14);
     ctx.restore();
 
@@ -1564,11 +1564,11 @@ class Game {
     this._rr(ctx,btnX,btnY,btnW,btnH,12);
     ctx.fillStyle=hov?'#2196FF':CONFIG.COLORS.accent;ctx.fill();
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle='#fff';ctx.font=F(15,'bold');
-    fillTextFit(ctx,T('name_confirm'),cx,btnY+btnH/2,btnW-20,15,'bold');
+    ctx.fillStyle='#fff';ctx.font=F(12,'bold');
+    fillTextFit(ctx,T('name_confirm'),cx,btnY+btnH/2,btnW-20,12,'bold');
     ctx.restore();
 
-    ctx.save();ctx.textBaseline='alphabetic';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
+    ctx.save();ctx.textBaseline='alphabetic';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
     if(isRTL()){ctx.textAlign='right';ctx.fillText(T('name_back')+' →',CONFIG.WIDTH-pad,Math.round(CONFIG.HEIGHT*0.88));}
     else{ctx.textAlign='left';ctx.fillText('← '+T('name_back'),pad,Math.round(CONFIG.HEIGHT*0.88));}
     ctx.restore();
@@ -1596,7 +1596,7 @@ class Game {
     ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.fillStyle=CONFIG.COLORS.player;ctx.shadowColor=CONFIG.COLORS.player;ctx.shadowBlur=18;
     ctx.font=F(48,'bold');ctx.fillText('BUG SQUASHER',cx,Math.round(CONFIG.HEIGHT*0.14));
-    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(14);
+    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
     fillTextFit(ctx,T('subtitle'),cx,Math.round(CONFIG.HEIGHT*0.14)+24,CONFIG.WIDTH-60,14);
     ctx.restore();
 
@@ -1635,19 +1635,19 @@ class Game {
 
     // Start prompt
     if(Math.floor(ts/600)%2===0){
-      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(14);
+      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(12);
       ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),cx,Math.round(CONFIG.HEIGHT*0.84));
       ctx.restore();
     }
 
     if(this.highScore>0){
-      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
+      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
       ctx.fillText(T('hi_score')+': '+this.highScore,cx,Math.round(CONFIG.HEIGHT*0.87));
       ctx.restore();
     }
 
     if(this.playerName){
-      ctx.save();ctx.textBaseline='top';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
+      ctx.save();ctx.textBaseline='top';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
       if(isRTL()){ctx.textAlign='left';ctx.fillText(this.playerName+' ◀',14,10);}
       else{ctx.textAlign='right';ctx.fillText('▶ '+this.playerName,CONFIG.WIDTH-14,10);}
       ctx.restore();
@@ -1685,7 +1685,7 @@ class Game {
       ctx.textAlign='center';ctx.textBaseline='alphabetic';
       ctx.fillStyle=colors[i];ctx.shadowColor=colors[i];ctx.shadowBlur=5;
       ctx.font=isRTL()?`bold 9px ${SYS_AR}`:`bold 9px ${SYS}`;
-      fillTextFit(ctx,T(key),(i+0.5)*colW,y,colW-8,9,'bold');
+      fillTextFit(ctx,T(key),(i+0.5)*colW,y,colW-8,12,'bold');
       ctx.restore();
     });
   }
@@ -1751,33 +1751,49 @@ class Game {
   _drawHUD(ts){
     const ctx=this.ctx;
     ctx.save();ctx.direction=isRTL()?'rtl':'ltr';
-    // Hearts
+
+    // ---- HP Bar (segmented) ----
+    const segW=18,segH=8,segGap=4,segR=3;
+    const barY=14;
+    const totalW=CONFIG.PLAYER_MAX_HP*segW+(CONFIG.PLAYER_MAX_HP-1)*segGap;
+    const barX=isRTL()?(CONFIG.WIDTH-12-totalW):12;
     for(let i=0;i<CONFIG.PLAYER_MAX_HP;i++){
-      ctx.fillStyle=i<this.player.hp?CONFIG.COLORS.error:'rgba(255,69,58,0.15)';
-      ctx.font=F(20);ctx.textBaseline='top';ctx.textAlign=rtlAlign('left');
-      ctx.shadowColor=i<this.player.hp?CONFIG.COLORS.error:'transparent';
-      ctx.shadowBlur=i<this.player.hp?5:0;
-      ctx.fillText('♥',isRTL()?(CONFIG.WIDTH-12-i*26):(12+i*26),10);
-    }
-    ctx.shadowBlur=0;
-    // Score
-    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(24,'bold');
-    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(this.score,CONFIG.WIDTH/2,6);
-    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
-    ctx.fillText(T('hi_score')+' '+this.highScore,CONFIG.WIDTH/2,33);
-    // Combo
-    if(this.combo>1){
-      const pulse=1+Math.sin(ts*0.01)*0.06;
-      ctx.textAlign=rtlAlign('right');
-      ctx.fillStyle=this.combo>=5?CONFIG.COLORS.gold:CONFIG.COLORS.accent;
-      ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
-      ctx.font=F(Math.floor((12+this.combo)*pulse),'bold');
-      const comboX=isRTL()?12:(CONFIG.WIDTH-12);
-      const comboTxt=isRTL()?(T('combo')+' ×'+this.combo):('×'+this.combo+' '+T('combo'));
-      ctx.fillText(comboTxt,comboX,10);
+      const sx=isRTL()?(barX+totalW-(i+1)*(segW+segGap)+segGap):(barX+i*(segW+segGap));
+      const full=i<this.player.hp;
+      ctx.save();
+      this._rr(ctx,sx,barY,segW,segH,segR);
+      ctx.fillStyle=full?CONFIG.COLORS.error:'rgba(255,69,58,0.12)';
+      if(full){ctx.shadowColor=CONFIG.COLORS.error;ctx.shadowBlur=5;}
+      ctx.fill();
       ctx.shadowBlur=0;
+      ctx.restore();
     }
-    // Wave
+
+    // ---- Score (HEAD — 20px bold, centered) ----
+    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(20,'bold');
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(this.score,CONFIG.WIDTH/2,8);
+    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
+    ctx.fillText(T('hi_score')+' '+this.highScore,CONFIG.WIDTH/2,32);
+
+    // ---- BONUS stack (top-right) ----
+    if(this.combo>1){
+      const pulse=0.72+0.28*Math.abs(Math.sin(ts*0.004));
+      const bx=isRTL()?12:(CONFIG.WIDTH-12);
+      const align=rtlAlign('right');
+      // Multiplier — HEAD size
+      ctx.globalAlpha=pulse;
+      ctx.textAlign=align;
+      ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=10;
+      ctx.font=F(20,'bold');
+      ctx.fillText('×'+this.combo,bx,8);
+      // BONUS label — BODY size, below
+      ctx.shadowBlur=0;
+      ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12,'bold');
+      ctx.fillText(T('combo'),bx,32);
+      ctx.globalAlpha=1;ctx.shadowBlur=0;
+    }
+
+    // ---- Wave label (bottom-center — BODY) ----
     ctx.textAlign='center';ctx.textBaseline='bottom';
     ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
     const wt=this.waves.state==='gap'?(this.waves.wave===0?T('get_ready'):T('wave_in',this.waves.wave+1)):T('wave',this.waves.wave);
@@ -1853,7 +1869,7 @@ class Game {
     ctx.fillText('🦆',btnX,btnY-4);
     // "SHOOT" label
     ctx.fillStyle=pressed?CONFIG.COLORS.bg:'rgba(255,255,255,0.6)';
-    ctx.font=F(9,'bold');ctx.textBaseline='middle';
+    ctx.font=F(12,'bold');ctx.textBaseline='middle';
     ctx.fillText(T('shoot'),btnX,btnY+btnR-14);
 
     ctx.restore();
@@ -1875,24 +1891,24 @@ class Game {
     fillTextFit(ctx,T('seg_fault'),cx,titleY,CONFIG.WIDTH-48,40,'bold');
     ctx.shadowBlur=0;
     ctx.textBaseline='alphabetic';
-    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(13);
+    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
     ctx.fillText(T('core_dump'),cx,Math.round(CONFIG.HEIGHT*0.23));
 
     // Score card
     const scW=Math.min(240,CONFIG.WIDTH*0.55),scH=60,scX=cx-scW/2,scY=Math.round(CONFIG.HEIGHT*0.26);
     this._card(ctx,scX,scY,scW,scH,14);
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(11);
+    ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
     ctx.fillText(T('score_lbl').toUpperCase(),cx,scY+14);
-    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(28,'bold');
+    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(20,'bold');
     ctx.fillText(this.score,cx,scY+40);
 
     // Best
     const bestY=Math.round(CONFIG.HEIGHT*0.38);
     ctx.textBaseline='alphabetic';
     if(this.score>0&&this.score>=this.highScore){
-      ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(14,'bold');
-      fillTextFit(ctx,T('new_hi'),cx,bestY,CONFIG.WIDTH-80,14,'bold');
+      ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(12,'bold');
+      fillTextFit(ctx,T('new_hi'),cx,bestY,CONFIG.WIDTH-80,12,'bold');
     } else if(this.highScore>0){
       ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
       ctx.fillText(T('best')+': '+this.highScore,cx,bestY);
@@ -1904,7 +1920,7 @@ class Game {
 
     // Restart prompt (flashing)
     if(guardElapsed && Math.floor(ts/600)%2===0){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
+      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
       fillTextFit(ctx,this._isTouchDevice()?T('restart_t'):T('restart'),cx,Math.round(CONFIG.HEIGHT*0.88),CONFIG.WIDTH-80,13);
     }
 
@@ -1984,18 +2000,18 @@ class Game {
 
     ctx.save();
     ctx.textBaseline='alphabetic';ctx.textAlign='center';
-    ctx.fillStyle=CONFIG.COLORS.accent;ctx.font=F(11,'bold');
+    ctx.fillStyle=CONFIG.COLORS.accent;ctx.font=F(12,'bold');
     ctx.fillText(T('leaderboard').toUpperCase(),CONFIG.WIDTH/2,panelY+headerH-4);
     ctx.strokeStyle=CONFIG.COLORS.border;ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(panelX+panelPad,panelY+headerH);ctx.lineTo(panelX+panelW-panelPad,panelY+headerH);ctx.stroke();
 
     if(this.submittingScore){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(11);
+      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
       ctx.fillText(T('submitting'),CONFIG.WIDTH/2,panelY+headerH+lineH);
       ctx.restore();return;
     }
     if(topEntries.length===0){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(11);
+      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
       ctx.fillText(T('lb_empty'),CONFIG.WIDTH/2,panelY+headerH+lineH);
       ctx.restore();return;
     }
@@ -2018,7 +2034,7 @@ class Game {
       if(isMe){
         const nw=ctx.measureText(entry.name||'???').width;
         const tx=rtl?(r2-Math.min(nw,panelW*0.38)-5):(r2+Math.min(nw,panelW*0.38)+5);
-        ctx.textAlign=rtlAlign('left');ctx.fillStyle='rgba(255,214,10,0.5)';ctx.font=F(9);
+        ctx.textAlign=rtlAlign('left');ctx.fillStyle='rgba(255,214,10,0.5)';ctx.font=F(12);
         ctx.fillText(T('lb_you'),tx,textY);
       }
       ctx.textAlign=rtlAlign('right');ctx.fillStyle=isMe?CONFIG.COLORS.gold:CONFIG.COLORS.textSec;
@@ -2038,14 +2054,14 @@ class Game {
       ctx.fillStyle='rgba(255,214,10,0.07)';ctx.fill();
       ctx.strokeStyle='rgba(255,214,10,0.2)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
       ctx.textBaseline='alphabetic';
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(13,'bold');ctx.fillText('#'+(myIdx+1),r1,textY);
-      ctx.textAlign=rtlAlign('left');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(13,'bold');fillTextFit(ctx,own.name||'???',r2,textY,panelW*0.38,13,'bold');
+      ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(12,'bold');ctx.fillText('#'+(myIdx+1),r1,textY);
+      ctx.textAlign=rtlAlign('left');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(12,'bold');fillTextFit(ctx,own.name||'???',r2,textY,panelW*0.38,12,'bold');
       ctx.textAlign=rtlAlign('right');ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=`bold 13px ${MONO}`;ctx.fillText(own.score,r3,textY);
-      ctx.textAlign=rtlAlign('right');ctx.fillStyle='rgba(255,214,10,0.6)';ctx.font=F(10);ctx.fillText(T('lb_wave')+' '+(own.wave||'?'),r4,textY);
+      ctx.textAlign=rtlAlign('right');ctx.fillStyle='rgba(255,214,10,0.6)';ctx.font=F(12);ctx.fillText(T('lb_wave')+' '+(own.wave||'?'),r4,textY);
     }
 
     if(!CONFIG.LEADERBOARD_URL){
-      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(9);
+      ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
       ctx.fillText(T('lb_offline'),CONFIG.WIDTH/2,panelY+panelH-4);
     }
     ctx.restore();
