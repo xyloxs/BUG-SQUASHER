@@ -4,6 +4,32 @@ All notable changes to **BUG-SQUASHER** are listed here.
 
 ---
 
+## v1.2.0 — 2026-06-22
+
+### New Features
+
+| Feature | Description |
+|---|---|
+| **i18n — 4 languages** | DE / EN / FR / ES with full translation coverage |
+| **LANG_SELECT screen** | Language picker with flag cards before main menu; auto-detects browser language |
+| **NAME_INPUT screen** | DOM text input for player name; used in leaderboard; persists across restarts |
+| **Local leaderboard** | Top-15 scores stored in localStorage, shown on Game Over screen |
+| **Online leaderboard** | Firebase REST API ready (set `LEADERBOARD_URL` in CONFIG to activate) |
+| **Platform-aware menus** | All menu/pause/game-over text switches between touch and desktop variants |
+
+### Fixes & Improvements
+
+| Fix | Detail |
+|---|---|
+| **Faster difficulty** | Player speed 220→260, shoot cooldown 180→130ms, wave gap 3000→1800ms |
+| **Enemy speed up** | Spider 80–110→110–150 px/s, Snake 170–210→210–270 px/s |
+| **Octopus charges more** | Charge interval 2800–4300→2000–3200ms |
+| **Snakes from Wave 1** | Wave formula: `floor((w+1)/2)` — Wave 1 now always has 1 Snake |
+| **Spawn stagger** | 380ms→250ms between enemies in same wave |
+| **State machine extended** | LANG_SELECT → NAME_INPUT → MENU → PLAYING → PAUSED → GAME_OVER |
+
+---
+
 ## v1.1.0 — 2026-06-22
 
 ### Fixes & Improvements

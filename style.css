@@ -20,3 +20,29 @@ body {
   image-rendering: pixelated;
 }
 
+#nameInput {
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  background: #1a2233;
+  color: #E6EDF3;
+  border: 2px solid #58A6FF;
+  border-radius: 6px;
+  font: bold 20px 'Courier New', Courier, monospace;
+  text-align: center;
+  width: min(340px, 72vw);
+  padding: 13px 18px;
+  outline: none;
+  display: none;
+  z-index: 10;
+  caret-color: #58A6FF;
+}
+
+#nameInput.visible {
+  display: block;
+}
+
+#nameInput::placeholder {
+  color: #4a5568;
+}
