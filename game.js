@@ -68,11 +68,11 @@ const CONFIG = {
 const STRINGS = {
   en: {
     subtitle:      'rubber duck debugging, taken literally',
-    ctrl_move_t:   'TAP LEFT — move',
-    ctrl_shoot_t:  'TAP RIGHT — aim + shoot',
-    ctrl_both_t:   'Use both sides simultaneously',
-    ctrl_move:     'WASD / ARROWS — move',
-    ctrl_shoot:    'MOUSE + CLICK — shoot',
+    ctrl_move_t:   'Left joystick — move',
+    ctrl_shoot_t:  'Shoot button — fire',
+    ctrl_both_t:   'Joystick sets aim direction',
+    ctrl_move:     'WASD / Arrows — move',
+    ctrl_shoot:    'Mouse aim + Click / Space — shoot',
     ctrl_pause:    'P — pause',
     start_t:       'Tap anywhere to start',
     start:         'Click or press Space to start',
@@ -117,11 +117,11 @@ const STRINGS = {
   },
   de: {
     subtitle:      'Rubber-Duck-Debugging, wörtlich genommen',
-    ctrl_move_t:   'LINKS — bewegen',
-    ctrl_shoot_t:  'RECHTS — zielen + schießen',
-    ctrl_both_t:   'Beide Seiten gleichzeitig',
-    ctrl_move:     'WASD / PFEILE — bewegen',
-    ctrl_shoot:    'MAUS + KLICK — schießen',
+    ctrl_move_t:   'Joystick links — bewegen',
+    ctrl_shoot_t:  'Button rechts — schießen',
+    ctrl_both_t:   'Joystick steuert Richtung',
+    ctrl_move:     'WASD / Pfeile — bewegen',
+    ctrl_shoot:    'Maus zielen + Klick / Space — schießen',
     ctrl_pause:    'P — Pause',
     start_t:       'Tippen um zu starten',
     start:         'Klicken oder Leertaste',
@@ -166,11 +166,11 @@ const STRINGS = {
   },
   fr: {
     subtitle:      'débogage par canard en caoutchouc, au pied de la lettre',
-    ctrl_move_t:   'GAUCHE — déplacer',
-    ctrl_shoot_t:  'DROITE — viser + tirer',
-    ctrl_both_t:   'Utiliser les deux côtés',
+    ctrl_move_t:   'Joystick gauche — déplacer',
+    ctrl_shoot_t:  'Bouton droit — tirer',
+    ctrl_both_t:   'Le joystick oriente la direction',
     ctrl_move:     'WASD / FLÈCHES — déplacer',
-    ctrl_shoot:    'SOURIS + CLIC — tirer',
+    ctrl_shoot:    'Souris viser + Clic / Espace — tirer',
     ctrl_pause:    'P — pause',
     start_t:       'Toucher pour commencer',
     start:         'Clic ou Espace pour commencer',
@@ -215,11 +215,11 @@ const STRINGS = {
   },
   es: {
     subtitle:      'depuración con pato de goma, tomada literalmente',
-    ctrl_move_t:   'IZQUIERDA — mover',
-    ctrl_shoot_t:  'DERECHA — apuntar + disparar',
-    ctrl_both_t:   'Usar ambos lados a la vez',
+    ctrl_move_t:   'Joystick izquierdo — mover',
+    ctrl_shoot_t:  'Botón derecho — disparar',
+    ctrl_both_t:   'El joystick controla la dirección',
     ctrl_move:     'WASD / FLECHAS — mover',
-    ctrl_shoot:    'RATÓN + CLIC — disparar',
+    ctrl_shoot:    'Ratón apuntar + Clic / Espacio — disparar',
     ctrl_pause:    'P — pausa',
     start_t:       'Toca para comenzar',
     start:         'Clic o Espacio para comenzar',
@@ -264,11 +264,11 @@ const STRINGS = {
   },
   ar: {
     subtitle:      'تنقيح البط المطاطي، بالمعنى الحرفي',
-    ctrl_move_t:   'يسار — تحرك',
-    ctrl_shoot_t:  'يمين — صوِّب + أطلق',
-    ctrl_both_t:   'استخدم الجانبين معاً',
+    ctrl_move_t:   'عصا التحكم — تحرك',
+    ctrl_shoot_t:  'زر الإطلاق — أطلق',
+    ctrl_both_t:   'عصا التحكم تحدد الاتجاه',
     ctrl_move:     'WASD / الأسهم — تحرك',
-    ctrl_shoot:    'الفأرة + النقر — أطلق',
+    ctrl_shoot:    'الفأرة للتصويب + نقر / مسافة — أطلق',
     ctrl_pause:    'P — إيقاف مؤقت',
     start_t:       'انقر في أي مكان للبدء',
     start:         'انقر أو اضغط المسافة للبدء',
@@ -400,6 +400,9 @@ class InputManager {
     this._pauseConsumed  = false;
     this._actionConsumed = false;
     this._clickConsumed  = false;
+    // Last known move direction for keyboard-only shooting
+    this._lastMoveAngle  = 0;
+    this._spaceHeld      = false;
     this._bindKeyboard();
     this._bindMouse(canvas);
     this._bindTouch(canvas);
@@ -408,9 +411,13 @@ class InputManager {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
       if (e.code === 'KeyP') this._pauseConsumed = true;
-      if (e.code === 'Space' || e.code === 'Enter') { this._actionConsumed = true; e.preventDefault(); }
+      if (e.code === 'Space') { this._actionConsumed = true; this._spaceHeld = true; e.preventDefault(); }
+      if (e.code === 'Enter') { this._actionConsumed = true; e.preventDefault(); }
     });
-    window.addEventListener('keyup', e => { this.keys[e.code] = false; });
+    window.addEventListener('keyup', e => {
+      this.keys[e.code] = false;
+      if (e.code === 'Space') this._spaceHeld = false;
+    });
   }
   _bindMouse(canvas) {
     canvas.addEventListener('mousemove', e => {
@@ -433,15 +440,21 @@ class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const p = toCanvas(t.clientX, t.clientY);
-        // Mirror touch position into mouse so hit-tests on menu screens work
+        // Always mirror into mouse for menu hit-tests
         this.mouse.x = p.x;
         this.mouse.y = p.y;
         this._clickConsumed = true;
         this._actionConsumed = true;
-        if (p.x < CONFIG.WIDTH / 2) {
-          this.touch.joystick = { active: true, id: t.identifier, startX: p.x, startY: p.y, curX: p.x, curY: p.y };
-        } else {
+
+        // Shoot button: bottom-right corner (right 35% × bottom 22%)
+        const inShootBtn = p.x > CONFIG.WIDTH * 0.65 && p.y > CONFIG.HEIGHT * 0.78;
+        if (inShootBtn) {
           this.touch.shoot = { active: true, id: t.identifier, x: p.x, y: p.y };
+        } else {
+          // Joystick: anywhere else (preferably left half, but full screen for comfort)
+          if (!this.touch.joystick.active) {
+            this.touch.joystick = { active: true, id: t.identifier, startX: p.x, startY: p.y, curX: p.x, curY: p.y };
+          }
         }
       }
     }, { passive: false });
@@ -449,8 +462,12 @@ class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const p = toCanvas(t.clientX, t.clientY);
-        if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) { this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y; }
-        if (this.touch.shoot.active   && t.identifier === this.touch.shoot.id)    { this.touch.shoot.x = p.x; this.touch.shoot.y = p.y; }
+        if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) {
+          this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y;
+        }
+        if (this.touch.shoot.active && t.identifier === this.touch.shoot.id) {
+          this.touch.shoot.x = p.x; this.touch.shoot.y = p.y;
+        }
       }
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
@@ -474,13 +491,22 @@ class InputManager {
       if (jl > 8) { dx = jdx / jl; dy = jdy / jl; }
     }
     const len = Math.hypot(dx, dy);
-    return len > 0 ? { x: dx / len, y: dy / len } : { x: 0, y: 0 };
+    if (len > 0) {
+      this._lastMoveAngle = Math.atan2(dy, dx);
+      return { x: dx / len, y: dy / len };
+    }
+    return { x: 0, y: 0 };
   }
   getAimAngle(px, py) {
-    if (this.touch.shoot.active) return Math.atan2(this.touch.shoot.y - py, this.touch.shoot.x - px);
-    return Math.atan2(this.mouse.y - py, this.mouse.x - px);
+    // Touch shoot: aim in joystick direction (or last move direction if joystick idle)
+    if (this.touch.shoot.active) return this._lastMoveAngle;
+    // Mouse: aim toward cursor (only if cursor is meaningfully away from player)
+    const mouseDist = Math.hypot(this.mouse.x - px, this.mouse.y - py);
+    if (mouseDist > 5) return Math.atan2(this.mouse.y - py, this.mouse.x - px);
+    // Keyboard-only: aim in last move direction
+    return this._lastMoveAngle;
   }
-  isShootingHeld() { return this.mouse.down || this.touch.shoot.active; }
+  isShootingHeld() { return this.mouse.down || this.touch.shoot.active || this._spaceHeld; }
   consumePause()   { const v = this._pauseConsumed;  this._pauseConsumed  = false; return v; }
   consumeAction()  { const v = this._actionConsumed; this._actionConsumed = false; return v; }
   consumeClick()   { const v = this._clickConsumed;  this._clickConsumed  = false; return v; }
@@ -1194,12 +1220,14 @@ class Game {
 
     this._drawMenuDuck(ctx,CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.40),ts);
 
-    const ctrlW=Math.min(340,CONFIG.WIDTH*0.7),ctrlH=82,ctrlX=CONFIG.WIDTH/2-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.57);
+    const ctrlW=Math.min(340,CONFIG.WIDTH*0.7),ctrlH=this._isTouchDevice()?60:82,ctrlX=CONFIG.WIDTH/2-ctrlW/2,ctrlY=Math.round(CONFIG.HEIGHT*0.57);
     this._glassPanel(ctx,ctrlX,ctrlY,ctrlW,ctrlH,14);
     ctx.save();
     ctx.textAlign='center';ctx.textBaseline='alphabetic';
     ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
-    const lines=this._isTouchDevice()?[T('ctrl_move_t'),T('ctrl_shoot_t'),T('ctrl_both_t')]:[T('ctrl_move'),T('ctrl_shoot'),T('ctrl_pause')];
+    const lines=this._isTouchDevice()
+      ?[T('ctrl_move_t'),T('ctrl_shoot_t')]
+      :[T('ctrl_move'),T('ctrl_shoot'),T('ctrl_pause')];
     lines.forEach((ln,i)=>ctx.fillText(ln,CONFIG.WIDTH/2,ctrlY+22+i*22));
     ctx.restore();
 
@@ -1332,27 +1360,43 @@ class Game {
 
   _drawTouchOverlay(){
     if(!this._isTouchDevice())return;
-    const ctx=this.ctx,j=this.input.touch.joystick,s=this.input.touch.shoot;
+    const ctx=this.ctx;
+    const j=this.input.touch.joystick;
+    const s=this.input.touch.shoot;
+
     ctx.save();
-    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(CONFIG.WIDTH/2,0);ctx.lineTo(CONFIG.WIDTH/2,CONFIG.HEIGHT);ctx.stroke();
-    ctx.font=F(11);ctx.textBaseline='alphabetic';ctx.textAlign='center';
-    if(!j.active){ctx.fillStyle=CONFIG.COLORS.textDim;ctx.fillText(T('move'),CONFIG.WIDTH*0.25,CONFIG.HEIGHT-35);}
-    if(!s.active){ctx.fillStyle=CONFIG.COLORS.textDim;ctx.fillText(T('shoot'),CONFIG.WIDTH*0.75,CONFIG.HEIGHT-35);}
+
+    // Joystick visual
     if(j.active){
-      const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=45;
+      const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=48;
       const cx=j.startX+(dist>maxR?(dx/dist)*maxR:dx),cy=j.startY+(dist>maxR?(dy/dist)*maxR:dy);
-      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=2;
+      ctx.strokeStyle='rgba(255,255,255,0.14)';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(j.startX,j.startY,maxR,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.30)';
-      ctx.beginPath();ctx.arc(cx,cy,18,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.28)';
+      ctx.beginPath();ctx.arc(cx,cy,22,0,Math.PI*2);ctx.fill();
     }
-    if(s.active){
-      ctx.strokeStyle=CONFIG.COLORS.player;ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(s.x,s.y,22,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='rgba(255,215,0,0.35)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(s.x-30,s.y);ctx.lineTo(s.x+30,s.y);ctx.moveTo(s.x,s.y-30);ctx.lineTo(s.x,s.y+30);ctx.stroke();
-    }
+
+    // Shoot button — fixed bottom-right
+    const btnR  = Math.min(52, CONFIG.WIDTH * 0.09);
+    const btnX  = CONFIG.WIDTH  - btnR - 28;
+    const btnY  = CONFIG.HEIGHT - btnR - 28;
+    const pressed = s.active;
+
+    ctx.shadowColor = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.3)';
+    ctx.shadowBlur  = pressed ? 18 : 6;
+    ctx.fillStyle   = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.arc(btnX, btnY, btnR, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth   = 2;
+    ctx.beginPath(); ctx.arc(btnX, btnY, btnR, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur  = 0;
+
+    // Duck icon on button
+    ctx.fillStyle = pressed ? '#0a0e17' : CONFIG.COLORS.textPri;
+    ctx.font      = `${Math.round(btnR * 0.72)}px serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🦆', btnX, btnY);
+
     ctx.restore();
   }
 
