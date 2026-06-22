@@ -32,6 +32,10 @@ const CONFIG = {
   LANG_KEY:        'bugSquasher_lang',
   SCORES_KEY:      'bugSquasher_scores',
   LEADERBOARD_URL: '',
+  // Firebase path for GSE footer-link click tracking, e.g.:
+  // 'https://your-project-default-rtdb.firebaseio.com/clicks/bugsquasher'
+  CLICK_COUNTER_URL: '',
+  GSE_URL:         'https://gse.events',
 
   COLORS: {
     bg:       '#0f1724',
@@ -449,7 +453,7 @@ class InputManager {
         const p = toLogical(t.clientX, t.clientY);
         this.mouse.x = p.x; this.mouse.y = p.y;
         this._clickConsumed = true; this._actionConsumed = true;
-        const inShootBtn = p.x > CONFIG.WIDTH * 0.65 && p.y > CONFIG.HEIGHT * 0.78;
+        const inShootBtn = p.x > CONFIG.WIDTH * 0.65 && p.y > CONFIG.HEIGHT * 0.78 && p.y < CONFIG.HEIGHT - 24;
         if (inShootBtn) {
           this.touch.shoot = { active: true, id: t.identifier, x: p.x, y: p.y };
         } else {
@@ -1030,6 +1034,82 @@ class Game {
     this.audio.playPop();this._shake(4);
   }
   _shake(m){this.shakeX=(Math.random()*2-1)*m;this.shakeY=(Math.random()*2-1)*m;}
+
+  async _trackClick(){
+    // Increment local counter always
+    const local = parseInt(localStorage.getItem('bugSquasher_gseClicks')||'0') + 1;
+    localStorage.setItem('bugSquasher_gseClicks', local);
+    // Fire-and-forget Firebase increment if configured
+    if(!CONFIG.CLICK_COUNTER_URL) return;
+    try {
+      // Read current count, increment, write back
+      const r = await fetch(CONFIG.CLICK_COUNTER_URL + '.json');
+      const cur = (await r.json()) || 0;
+      await fetch(CONFIG.CLICK_COUNTER_URL + '.json', {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(typeof cur === 'number' ? cur + 1 : 1),
+      });
+    } catch(e) { /* offline — local count already saved */ }
+  }
+
+  _drawFooter(ts){
+    const ctx = this.ctx;
+    const fh  = 22; // footer height in logical px
+    const fy  = CONFIG.HEIGHT - fh;
+    const cx  = CONFIG.WIDTH / 2;
+    const mx  = this.input.mouse.x, my = this.input.mouse.y;
+    const hov = my >= fy && my <= CONFIG.HEIGHT;
+
+    ctx.save();
+    // Background strip
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, fy, CONFIG.WIDTH, fh);
+    // Hairline separator
+    ctx.strokeStyle = CONFIG.COLORS.border;
+    ctx.lineWidth   = 0.5;
+    ctx.beginPath(); ctx.moveTo(0, fy); ctx.lineTo(CONFIG.WIDTH, fy); ctx.stroke();
+
+    // Text: "Made with 🦆 by GSE" · gse.events
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    const midY = fy + fh / 2;
+
+    ctx.fillStyle = CONFIG.COLORS.textDim;
+    ctx.font      = `11px ${SYS}`;
+    ctx.fillText('Made with 🦆 by', cx - 48, midY);
+
+    // Clickable "gse.events" link
+    const linkHov = hov && mx > cx - 12 && mx < cx + 74;
+    ctx.fillStyle = linkHov ? '#FFFFFF' : CONFIG.COLORS.textSec;
+    ctx.font      = linkHov ? `bold 11px ${SYS}` : `11px ${SYS}`;
+    ctx.fillText('gse.events', cx + 28, midY);
+
+    // Underline for link
+    const lw = 56;
+    ctx.strokeStyle  = linkHov ? '#FFFFFF' : CONFIG.COLORS.textDim;
+    ctx.lineWidth    = 0.5;
+    ctx.globalAlpha  = linkHov ? 0.8 : 0.35;
+    ctx.beginPath(); ctx.moveTo(cx, midY + 6); ctx.lineTo(cx + lw, midY + 6); ctx.stroke();
+    ctx.globalAlpha  = 1;
+
+    // Click counter badge (local, always visible)
+    const clicks = parseInt(localStorage.getItem('bugSquasher_gseClicks')||'0');
+    if(clicks > 0){
+      ctx.fillStyle = CONFIG.COLORS.textDim;
+      ctx.font      = `9px ${MONO}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(clicks + ' clicks', CONFIG.WIDTH - 8, midY);
+    }
+
+    ctx.restore();
+
+    // Hit detection
+    if(linkHov && this.input.consumeClick()){
+      this._trackClick();
+      window.open(CONFIG.GSE_URL, '_blank', 'noopener,noreferrer');
+    }
+  }
   _isTouchDevice(){return this.input._touchEverUsed||navigator.maxTouchPoints>0||('ontouchstart' in window);}
 
   // ---- Draw helpers ----
@@ -1064,10 +1144,10 @@ class Game {
   _draw(ts){
     const ctx=this.ctx;
     ctx.clearRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
-    if(this.state==='LANG_SELECT'){this._drawLangSelect(ts);return;}
-    if(this.state==='NAME_INPUT') {this._drawNameInput(ts); return;}
-    if(this.state==='MENU')       {this._drawMenu(ts);      return;}
-    if(this.state==='GAME_OVER')  {this._drawGameOver(ts);  return;}
+    if(this.state==='LANG_SELECT'){this._drawLangSelect(ts);this._drawFooter(ts);return;}
+    if(this.state==='NAME_INPUT') {this._drawNameInput(ts); this._drawFooter(ts);return;}
+    if(this.state==='MENU')       {this._drawMenu(ts);      this._drawFooter(ts);return;}
+    if(this.state==='GAME_OVER')  {this._drawGameOver(ts);  this._drawFooter(ts);return;}
     this._drawGame(ts);
     if(this.state==='PAUSED'){
       ctx.save();ctx.direction=isRTL()?'rtl':'ltr';
@@ -1083,6 +1163,7 @@ class Game {
       if(this.input.consumePause())this.toResumed();
       else if(this._isTouchDevice()&&this.input.consumeClick())this.toResumed();
     }
+    this._drawFooter(ts);
   }
 
   // ---- LANG_SELECT ----
