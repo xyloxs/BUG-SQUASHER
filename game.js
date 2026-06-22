@@ -82,14 +82,12 @@ const STRINGS = {
     wave:          'Wave {n}',
     move:          'Move',
     shoot:         'Shoot',
-    seg_fault:     'SEGMENTATION FAULT',
-    core_dump:     'core dumped',
+    seg_fault:     'The bugs got you!',
+    core_dump:     'Better luck next time',
+    intro_line1:   'The bugs have gone sentient.',
+    intro_line2:   'Only one duck can stop them.',
+    intro_cta:     'Tap or press any key',
     score_lbl:     'Score',
-    new_hi:        'New personal best!',
-    best:          'Best',
-    restart_t:     'Tap to play again',
-    restart:       'Click or Space to play again',
-    lang_title:    'Choose language',
     lang_sub:      'Your browser language was pre-selected',
     name_title:    "What's your name?",
     name_sub:      'Shown on the leaderboard',
@@ -131,8 +129,11 @@ const STRINGS = {
     wave:          'Welle {n}',
     move:          'Bewegen',
     shoot:         'Schießen',
-    seg_fault:     'SEGMENTATION FAULT',
-    core_dump:     'core dumped',
+    seg_fault:     'Du wurdest geschnappt!',
+    core_dump:     'Die Bugs haben gewonnen',
+    intro_line1:   'Die Bugs sind lebendig geworden.',
+    intro_line2:   'Nur eine Ente kann sie stoppen.',
+    intro_cta:     'Tippen oder eine Taste drücken',
     score_lbl:     'Punkte',
     new_hi:        'Neuer Highscore!',
     best:          'Beste',
@@ -180,8 +181,11 @@ const STRINGS = {
     wave:          'Vague {n}',
     move:          'Déplacer',
     shoot:         'Tirer',
-    seg_fault:     'SEGMENTATION FAULT',
-    core_dump:     'core dumped',
+    seg_fault:     'Les bugs ont gagné !',
+    core_dump:     'Mieux vaut réessayer',
+    intro_line1:   'Les bugs sont devenus vivants.',
+    intro_line2:   'Seul un canard peut les arrêter.',
+    intro_cta:     'Toucher ou appuyer sur une touche',
     score_lbl:     'Score',
     new_hi:        'Nouveau record !',
     best:          'Meilleur',
@@ -229,8 +233,11 @@ const STRINGS = {
     wave:          'Ola {n}',
     move:          'Mover',
     shoot:         'Disparar',
-    seg_fault:     'SEGMENTATION FAULT',
-    core_dump:     'core dumped',
+    seg_fault:     '¡Los bugs ganaron!',
+    core_dump:     'Mejor suerte la próxima vez',
+    intro_line1:   'Los bugs han cobrado vida.',
+    intro_line2:   'Solo un pato puede detenerlos.',
+    intro_cta:     'Toca o pulsa cualquier tecla',
     score_lbl:     'Puntos',
     new_hi:        '¡Nuevo récord!',
     best:          'Mejor',
@@ -278,8 +285,11 @@ const STRINGS = {
     wave:          'الموجة {n}',
     move:          'تحرك',
     shoot:         'أطلق',
-    seg_fault:     'SEGMENTATION FAULT',
-    core_dump:     'core dumped',
+    seg_fault:     'انتهت اللعبة!',
+    core_dump:     'الحشرات انتصرت',
+    intro_line1:   'الحشرات أصبحت حية.',
+    intro_line2:   'بطة واحدة فقط تستطيع إيقافها.',
+    intro_cta:     'انقر أو اضغط أي مفتاح',
     score_lbl:     'النقاط',
     new_hi:        'رقم شخصي جديد!',
     best:          'الأفضل',
@@ -855,7 +865,8 @@ class Game {
     this.nameEl=document.getElementById('nameInput');
     this.lang=this._detectLang();
     window.__bsLang=this.lang;
-    this.state='LANG_SELECT';
+    this.state='INTRO';
+    this._introTs=0;
     this.lastTs=0;this.shakeX=0;this.shakeY=0;this._gameOverTs=0;
     this.player=null;this.enemies=[];this.bullets=[];
     this.ps=new ParticleSystem();this.waves=new WaveManager();
@@ -922,9 +933,14 @@ class Game {
     };
     requestAnimationFrame(loop);
   }
-  _loop(dt,ts){if(this.state==='PLAYING')this._update(dt);this._draw(ts);}
+  _loop(dt,ts){
+    if(this.state==='INTRO'&&this._introTs===0)this._introTs=ts;
+    if(this.state==='PLAYING')this._update(dt);
+    this._draw(ts);
+  }
 
   // ---- State Transitions ----
+  toIntro()      {this.state='INTRO';this._introTs=0;}
   toLangSelect(){this._hideNameInput();this.state='LANG_SELECT';}
   toNameInput() {this._showNameInput();this.state='NAME_INPUT';}
   toMenu()      {this._hideNameInput();this.state='MENU';}
@@ -1140,14 +1156,102 @@ class Game {
     ctx.restore();
   }
 
-  // ---- Draw dispatcher ----
-  _draw(ts){
+  // ---- INTRO ----
+  _drawIntro(ts){
+    if(this._introTs===0)this._introTs=ts;
+    const elapsed=(ts-this._introTs)/1000; // seconds
+    const ctx=this.ctx;
+    const cx=CONFIG.WIDTH/2,cy=CONFIG.HEIGHT/2;
+
+    // Background — deep dark with subtle radial
+    ctx.fillStyle='#090d15';
+    ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+    ctx.save();ctx.globalAlpha=0.18;
+    const rg=ctx.createRadialGradient(cx,cy,40,cx,cy,CONFIG.HEIGHT*0.7);
+    rg.addColorStop(0,'#1a2540');rg.addColorStop(1,'#090d15');
+    ctx.fillStyle=rg;ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+    ctx.restore();
+
+    // Animated duck — bounces in from below, settles at center-top area
+    const duckArrival=Math.min(1,elapsed/0.7);        // 0→1 in first 0.7s
+    const duckY=cy-80+Math.pow(1-duckArrival,2)*200  // drops in with ease
+              +Math.sin(elapsed*2.2)*6*(duckArrival); // gentle bob after landing
+    const duckAlpha=Math.min(1,elapsed/0.4);
+
+    ctx.save();ctx.globalAlpha=duckAlpha;
+    ctx.translate(cx,duckY);
+    ctx.scale(3,3);
+    ctx.rotate(Math.sin(elapsed*1.6)*0.12);
+    // Duck body
+    ctx.shadowColor='#FFD60A';ctx.shadowBlur=16;
+    ctx.fillStyle=CONFIG.COLORS.player;
+    ctx.beginPath();ctx.ellipse(0,3,17,13,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#CC9900';ctx.lineWidth=1.5;ctx.stroke();
+    // Head
+    ctx.beginPath();ctx.arc(7,-10,10,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#CC9900';ctx.lineWidth=1.5;ctx.stroke();
+    // Bill
+    ctx.shadowBlur=0;ctx.fillStyle='#FF8C00';
+    ctx.beginPath();ctx.moveTo(15,-11);ctx.quadraticCurveTo(28,-9,26,-5);ctx.lineTo(15,-6);ctx.closePath();ctx.fill();
+    // Eye
+    ctx.translate(10,-13);
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111';
+    const ep=Math.cos(elapsed*1.2)*1.5,eq=Math.sin(elapsed*0.9)*1.5;
+    ctx.beginPath();ctx.arc(ep,eq,2.2,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+
+    // Line 1 — fades in at 0.5s
+    const l1alpha=Math.max(0,Math.min(1,(elapsed-0.5)/0.4));
+    if(l1alpha>0){
+      ctx.save();ctx.globalAlpha=l1alpha;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(20,'bold');
+      // Typewriter effect: show progressively more chars
+      const l1full=T('intro_line1');
+      const l1chars=Math.floor(((elapsed-0.5)/0.8)*l1full.length);
+      ctx.fillText(l1full.slice(0,Math.min(l1chars,l1full.length)),cx,cy+30);
+      ctx.restore();
+    }
+
+    // Line 2 — fades in at 1.4s
+    const l2alpha=Math.max(0,Math.min(1,(elapsed-1.4)/0.4));
+    if(l2alpha>0){
+      ctx.save();ctx.globalAlpha=l2alpha;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=10;
+      ctx.font=F(22,'bold');
+      const l2full=T('intro_line2');
+      const l2chars=Math.floor(((elapsed-1.4)/0.7)*l2full.length);
+      ctx.fillText(l2full.slice(0,Math.min(l2chars,l2full.length)),cx,cy+62);
+      ctx.shadowBlur=0;ctx.restore();
+    }
+
+    // CTA — flashes in at 2.5s
+    const ctaAlpha=elapsed>2.5?Math.max(0,Math.min(1,(elapsed-2.5)/0.3))*(Math.floor(ts/550)%2===0?1:0.35):0;
+    if(ctaAlpha>0){
+      ctx.save();ctx.globalAlpha=ctaAlpha;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(13);
+      ctx.fillText(T('intro_cta'),cx,cy+106);
+      ctx.restore();
+    }
+
+    this._vignette(ctx);
+
+    // Skip on any input (or auto-advance after 6s)
+    if(elapsed>2.8&&(this.input.consumeAction()||this.input.consumeClick()))this.toLangSelect();
+    if(elapsed>6)this.toLangSelect();
+  }
+
+  // ---- LANG_SELECT ----
     const ctx=this.ctx;
     ctx.clearRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
-    if(this.state==='LANG_SELECT'){this._drawLangSelect(ts);this._drawFooter(ts);return;}
-    if(this.state==='NAME_INPUT') {this._drawNameInput(ts); this._drawFooter(ts);return;}
-    if(this.state==='MENU')       {this._drawMenu(ts);      this._drawFooter(ts);return;}
-    if(this.state==='GAME_OVER')  {this._drawGameOver(ts);  this._drawFooter(ts);return;}
+    if(this.state==='INTRO')       {this._drawIntro(ts);       this._drawFooter(ts);return;}
+    if(this.state==='LANG_SELECT') {this._drawLangSelect(ts);  this._drawFooter(ts);return;}
+    if(this.state==='NAME_INPUT')  {this._drawNameInput(ts);   this._drawFooter(ts);return;}
+    if(this.state==='MENU')        {this._drawMenu(ts);        this._drawFooter(ts);return;}
+    if(this.state==='GAME_OVER')   {this._drawGameOver(ts);    this._drawFooter(ts);return;}
     this._drawGame(ts);
     if(this.state==='PAUSED'){
       ctx.save();ctx.direction=isRTL()?'rtl':'ltr';
@@ -1486,12 +1590,16 @@ class Game {
     ctx.fillStyle=CONFIG.COLORS.overlay;ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
     const cx=CONFIG.WIDTH/2;
 
-    // Title — keeps MONO for the dev humour
-    ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    ctx.fillStyle=CONFIG.COLORS.error;ctx.font=`bold 34px ${MONO}`;
-    ctx.fillText('SEGMENTATION FAULT',cx,Math.round(CONFIG.HEIGHT*0.17));
-    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=`12px ${MONO}`;
-    ctx.fillText('core dumped',cx,Math.round(CONFIG.HEIGHT*0.22));
+    // Title — playful per language, auto-fits width
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=CONFIG.COLORS.error;ctx.shadowColor=CONFIG.COLORS.error;ctx.shadowBlur=20;
+    ctx.font=F(40,'bold');
+    const titleY=Math.round(CONFIG.HEIGHT*0.16);
+    fillTextFit(ctx,T('seg_fault'),cx,titleY,CONFIG.WIDTH-48,40,'bold');
+    ctx.shadowBlur=0;
+    ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(13);
+    ctx.fillText(T('core_dump'),cx,Math.round(CONFIG.HEIGHT*0.23));
 
     // Score card
     const scW=Math.min(240,CONFIG.WIDTH*0.55),scH=60,scX=cx-scW/2,scY=Math.round(CONFIG.HEIGHT*0.26);
