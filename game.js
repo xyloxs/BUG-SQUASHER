@@ -1042,34 +1042,46 @@ class WaveManager {
     if(this.state==='gap'){this.gapTimer-=dt;if(this.gapTimer<=0){this.wave++;this._buildWave();this.state='active';}return;}
     if(this.spawnQueue.length>0){
       this.spawnQueue[0].timer-=dt;
-      if(this.spawnQueue[0].timer<=0){const e=this.spawnQueue.shift();enemies.push(this._spawnEnemy(e.type,e.player));}
+      if(this.spawnQueue[0].timer<=0){const e=this.spawnQueue.shift();enemies.push(this._spawnEnemy(e.type,e.player,e.wave));}
     }
     if(this.spawnQueue.length===0&&enemies.length===0){this.state='gap';this.gapTimer=CONFIG.WAVE_GAP_MS;this.waveCleared=true;audio.playWaveClear();}
   }
   _buildWave(){
     const w=this.wave,types=[];
-    // Mobile gets auto-aim advantage — no extra enemy count bonus needed
-    const nSp=Math.min(2+w, 10);
-    const nSn=Math.max(0,Math.floor((w-1)/2));   // snakes from wave 2 (was wave 1)
-    const nOc=Math.max(0,Math.floor((w-2)/2));
-    const nGh=Math.max(0,Math.floor((w-3)/3));
+    const mob=window.__isMobile?1.4:1.0; // 40% more enemies on mobile
+
+    // Wave 1: only 2 Spiders. Snakes from wave 3.
+    const nSp = w===1 ? Math.round(2*mob) : Math.min(Math.round((2+w)*mob),14);
+    const nSn = w < 3  ? 0 : Math.max(0,Math.round((w-2)*mob));
+    const nOc=Math.max(0,Math.round(Math.floor((w-1)/2)*mob));
+    const nGh=Math.max(0,Math.round(Math.floor((w-2)/3)*mob));
     for(let i=0;i<nSp;i++)types.push('Spider');
     for(let i=0;i<nSn;i++)types.push('Snake');
     for(let i=0;i<nOc;i++)types.push('Octopus');
     for(let i=0;i<nGh;i++)types.push('Ghost');
     for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]];}
-    this.spawnQueue=types.map((type,i)=>({type,timer:i*160,player:null}));
+    // Include wave number so progressive speed is applied at spawn time
+    this.spawnQueue=types.map((type,i)=>({type,timer:i*160,player:null,wave:w}));
     this.enemiesThisWave=types.length;
   }
-  _spawnEnemy(type,playerRef){
+  _spawnEnemy(type,playerRef,waveNum){
     const pos=this._edgePosition(),p=playerRef||{x:CONFIG.WIDTH/2,y:CONFIG.HEIGHT/2};
+    const w=waveNum||1;
+    // Progressive speed: baseSpeed * (1 + (wave-1) * 0.15)
+    // Wave 1=base(80 Spider / 160 Snake), wave 5=1.6x, wave 10=2.35x
+    const scaleFactor=1+(w-1)*0.15;
     let e;
-    if(type==='Spider')  e=new Spider(pos.x,pos.y);
-    else if(type==='Snake')   e=new Snake(pos.x,pos.y,p);
-    else if(type==='Octopus') e=new Octopus(pos.x,pos.y);
-    else e=new Ghost(pos.x,pos.y);
-    // Mobile: slightly more HP to compensate for auto-aim advantage, but not double
-    if(window.__isMobile) e.hp=Math.ceil(e.hp*1.4);
+    if(type==='Spider'){
+      e=new Spider(pos.x,pos.y,80*scaleFactor);
+    } else if(type==='Snake'){
+      e=new Snake(pos.x,pos.y,p,160*scaleFactor);
+    } else if(type==='Octopus'){
+      e=new Octopus(pos.x,pos.y);
+    } else {
+      e=new Ghost(pos.x,pos.y);
+    }
+    // Mobile: enemies take significantly more hits
+    if(window.__isMobile) e.hp=Math.ceil(e.hp*2.0);
     return e;
   }
   injectPlayer(player){for(const e of this.spawnQueue)e.player=player;}
@@ -1190,6 +1202,11 @@ class Game {
     this.shakeX=0;this.shakeY=0;this.scoreSubmitted=false;
     this._shootHint={active:true,timer:0};
     this._hasKilled=false;
+    // Tutorial overlay — shown once per install
+    this._tutDone=!!localStorage.getItem('bugSquasher_tutDone');
+    this._tutTimer=0;  // ms elapsed since wave 1 became active
+    this._goalShown=false;
+    this._goalTimer=0;
     this._comboFloaters=[];this._waveAnnounce=null;this._prevWaveState='gap';
     this._bonusPopup=null;
     this._activePowerup=null;
@@ -1258,7 +1275,8 @@ class Game {
     this.player.score=this.score;
     this.player.waveNumber=this.waves.wave;
 
-    // Auto-aim on touch: find nearest enemy each frame, set angle on input
+    // Auto-aim on touch: find nearest enemy each frame, set angle on input.
+    // Always call setAutoAim when on touch — duck faces nearest enemy even when not shooting.
     if(this._isTouchDevice()&&this.enemies.length>0){
       let nearest=null,minDist=Infinity;
       for(const e of this.enemies){
@@ -1270,7 +1288,7 @@ class Game {
         this.input.setAutoAim(Math.atan2(nearest.y-this.player.y,nearest.x-this.player.x));
         this._autoAimTarget=nearest;
       }
-    } else {
+    } else if(!this._isTouchDevice()){
       this.input.clearAutoAim();
       this._autoAimTarget=null;
     }
@@ -1283,6 +1301,19 @@ class Game {
     }
     this._prevWaveState=this.waves.state;
     if(this._waveAnnounce){this._waveAnnounce.timer-=dt;if(this._waveAnnounce.timer<=0)this._waveAnnounce=null;}
+
+    // Tutorial timer — count up while wave 1 is active and tutorial not done
+    if(!this._tutDone&&this.waves.wave===1&&this.waves.state==='active'){
+      this._tutTimer+=dt;
+      if(this._tutTimer>=8000){this._tutDone=true;localStorage.setItem('bugSquasher_tutDone','1');}
+    }
+
+    // Goal text — show once when wave 1 first becomes active
+    if(!this._goalShown&&this.waves.wave===1&&this.waves.state==='active'){
+      this._goalShown=true;
+      this._goalTimer=3500; // ms to display
+    }
+    if(this._goalTimer>0){this._goalTimer-=dt;if(this._goalTimer<0)this._goalTimer=0;}
     this.ps.update(dt);
     if(this.combo>1){this.comboTimer-=dt;if(this.comboTimer<=0){this.combo=1;this.comboTimer=0;}}
     // Combo floaters
@@ -1323,7 +1354,12 @@ class Game {
   _onKill(enemy){
     this.combo=Math.min(this.combo+1,10);this.comboTimer=CONFIG.COMBO_RESET_MS;
     this.score+=(CONFIG.BASE_SCORES[enemy.constructor.name]||10)*this.combo;
-    if(!this._hasKilled){this._hasKilled=true;if(this._shootHint)this._shootHint.active=false;}
+    if(!this._hasKilled){
+      this._hasKilled=true;
+      if(this._shootHint)this._shootHint.active=false;
+      // First kill marks tutorial complete
+      if(!this._tutDone){this._tutDone=true;localStorage.setItem('bugSquasher_tutDone','1');}
+    }
     if(this.combo>1){
       this._comboFloaters.push({text:'×'+this.combo,x:enemy.x,y:enemy.y-10,alpha:1,vy:-55});
       // Large centered bonus popup — replaces persistent stack as the "wow" moment
@@ -1982,6 +2018,10 @@ class Game {
     }
     this._drawHUD(ts);
     this._drawTouchOverlay();
+    // Tutorial overlay (touch, first-time only)
+    if(this._isTouchDevice()&&!this._tutDone)this._drawTutorialOverlay(ts);
+    // Goal text (one-time, wave 1 start)
+    this._drawGoalText(ts);
     this._vignette(ctx);
   }
 
@@ -2217,6 +2257,104 @@ class Game {
     ctx.font=F(12,'bold');ctx.textBaseline='middle';
     ctx.fillText(T('shoot'),btnX,btnY+btnR-14);
 
+    ctx.restore();
+  }
+
+  _drawTutorialOverlay(ts){
+    if(this._tutDone)return;
+    const t=this._tutTimer;       // ms elapsed in wave 1
+    const ctx=this.ctx;
+    const cx=CONFIG.WIDTH/2,cy=CONFIG.HEIGHT/2;
+
+    // Which step: 0-3s step1, 3-6s step2, 6-8s step3
+    let stepIdx=0,stepAlpha=1;
+    if(t<3000){
+      stepIdx=0;
+      stepAlpha=Math.min(1,t/300)*(t>2700?Math.max(0,(3000-t)/300):1);
+    } else if(t<6000){
+      const trel=t-3000;
+      stepIdx=1;
+      stepAlpha=Math.min(1,trel/300)*(trel>2700?Math.max(0,(3000-trel)/300):1);
+    } else {
+      const trel=t-6000;
+      stepIdx=2;
+      stepAlpha=Math.min(1,trel/300);
+    }
+    if(stepAlpha<=0)return;
+
+    const steps=[
+      {icon:'👈',text:'Joystick — move',arrowDir:'left'},
+      {icon:'👉',text:'Button — shoot',arrowDir:'right'},
+      {icon:'',text:'Defeat all enemies!',arrowDir:null},
+    ];
+    const step=steps[stepIdx];
+
+    // Semi-transparent dark pill
+    const pillW=Math.min(260,CONFIG.WIDTH*0.7),pillH=72,pillX=cx-pillW/2;
+    const pillY=cy-pillH/2-60; // above center, above joystick
+    ctx.save();
+    ctx.globalAlpha=0.82*stepAlpha;
+    this._rr(ctx,pillX,pillY,pillW,pillH,20);
+    ctx.fillStyle='rgba(10,15,28,0.92)';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.14)';ctx.lineWidth=1;ctx.stroke();
+
+    // Icon + text
+    ctx.globalAlpha=stepAlpha;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='28px serif';
+    if(step.icon)ctx.fillText(step.icon,cx,pillY+28);
+    ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(15,'bold');
+    ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=8;
+    ctx.fillText(step.text,cx,pillY+(step.icon?52:36));
+    ctx.shadowBlur=0;
+
+    // Animated arrow pointing toward the relevant control
+    if(step.arrowDir){
+      const arrowAnim=0.5+0.5*Math.sin(ts*0.005); // 0..1 bounce
+      const aY=pillY+pillH+16+arrowAnim*8;
+      const aX=step.arrowDir==='left'
+        ? Math.min(cx-40, 100)    // points left toward joystick
+        : Math.max(cx+40, CONFIG.WIDTH-100); // points right toward shoot btn
+      ctx.fillStyle=CONFIG.COLORS.gold;
+      ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=12;
+      // Arrow triangle
+      const sz=14;
+      ctx.beginPath();
+      if(step.arrowDir==='left'){
+        ctx.moveTo(aX,      aY);
+        ctx.lineTo(aX+sz*2, aY-sz);
+        ctx.lineTo(aX+sz*2, aY+sz);
+      } else {
+        ctx.moveTo(aX,      aY);
+        ctx.lineTo(aX-sz*2, aY-sz);
+        ctx.lineTo(aX-sz*2, aY+sz);
+      }
+      ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+    }
+
+    ctx.restore();
+  }
+
+  _drawGoalText(ts){
+    if(!this._goalShown||this._goalTimer<=0)return;
+    const ctx=this.ctx;
+    const cx=CONFIG.WIDTH/2;
+    // Fade in first 400ms, solid, then fade out last 600ms
+    let alpha=1;
+    if(this._goalTimer>3100)alpha=(3500-this._goalTimer)/400;
+    else if(this._goalTimer<600)alpha=this._goalTimer/600;
+    alpha=Math.max(0,Math.min(1,alpha));
+    if(alpha<=0)return;
+
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=CONFIG.COLORS.gold;
+    ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=18;
+    ctx.font=F(18,'bold');
+    fillTextFit(ctx,'Defeat all enemies to advance!',cx,CONFIG.HEIGHT*0.38,CONFIG.WIDTH-60,18,'bold');
+    ctx.shadowBlur=0;
     ctx.restore();
   }
 
