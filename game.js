@@ -614,9 +614,9 @@ class Player extends Entity {
   draw(ctx){
     if(this.invincibleTimer>0&&Math.floor(this.invincibleTimer/100)%2===0)return;
     ctx.save();ctx.translate(this.x,this.y);
-    ctx.translate(0,this.moving?Math.sin(this.time*8)*3:0);
+    ctx.translate(0,this.moving?Math.sin(this.time*8)*3:Math.sin(this.time*1.5)*4);
     ctx.rotate(Math.sin(this.time*3)*0.15);
-    if(this.squishTimer>0)ctx.scale(1.2,0.82);
+    if(this.squishTimer>0)ctx.scale(1.0,0.72);
     this._drawBody(ctx);this._drawHead(ctx);this._drawBill(ctx);this._drawEye(ctx);
     ctx.restore();
   }
@@ -929,6 +929,13 @@ class Game {
     this.enemies=[];this.bullets=[];this.ps=new ParticleSystem();this.waves=new WaveManager();
     this.player=new Player(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);
     this.shakeX=0;this.shakeY=0;this.scoreSubmitted=false;
+    this._comboFloaters=[];this._waveAnnounce=null;this._prevWaveState='gap';
+    this._driftChars=Array.from({length:20},()=>({
+      ch:['{}','()','[]','<>','//','&&','||','!=','==','++'][Math.floor(Math.random()*10)],
+      x:Math.random()*CONFIG.WIDTH,
+      y:Math.random()*CONFIG.HEIGHT,
+      speed:14+Math.random()*12,
+    }));
     this.state='PLAYING';
   }
   toPaused() {this.state='PAUSED';}
@@ -978,8 +985,18 @@ class Game {
     for(const b of this.bullets)b.update(dt);
     for(const e of this.enemies)e.update(dt,this.player);
     this.waves.update(dt,this.enemies,this.audio);
+    // Wave announcement trigger
+    if(this._prevWaveState==='gap'&&this.waves.state==='active'){
+      this._waveAnnounce={text:T('wave',this.waves.wave),timer:1600,maxTimer:1600};
+    }
+    this._prevWaveState=this.waves.state;
+    if(this._waveAnnounce){this._waveAnnounce.timer-=dt;if(this._waveAnnounce.timer<=0)this._waveAnnounce=null;}
     this.ps.update(dt);
     if(this.combo>1){this.comboTimer-=dt;if(this.comboTimer<=0){this.combo=1;this.comboTimer=0;}}
+    // Combo floaters
+    if(this._comboFloaters){const s=dt*0.001;this._comboFloaters.forEach(f=>{f.y+=f.vy*s;f.alpha-=s*1.2;});this._comboFloaters=this._comboFloaters.filter(f=>f.alpha>0);}
+    // Drift chars
+    if(this._driftChars){const s=dt*0.001;const syms=['{}','()','[]','<>','//','&&','||','!=','==','++'];for(const c of this._driftChars){c.y+=c.speed*s;if(c.y>CONFIG.HEIGHT+20){c.y=-20;c.x=Math.random()*CONFIG.WIDTH;c.ch=syms[Math.floor(Math.random()*syms.length)];}}}
     this.shakeX*=CONFIG.SHAKE_DECAY;this.shakeY*=CONFIG.SHAKE_DECAY;
     if(Math.abs(this.shakeX)<0.1)this.shakeX=0;if(Math.abs(this.shakeY)<0.1)this.shakeY=0;
     this._checkCollisions();
@@ -1006,7 +1023,10 @@ class Game {
   _onKill(enemy){
     this.combo=Math.min(this.combo+1,10);this.comboTimer=CONFIG.COMBO_RESET_MS;
     this.score+=(CONFIG.BASE_SCORES[enemy.constructor.name]||10)*this.combo;
-    this.ps.emit(enemy.x,enemy.y,enemy.color,18,{speedMin:60,speedMax:200,lifeMin:300,lifeMax:700,radiusMin:2,radiusMax:6});
+    if(this.combo>1)this._comboFloaters.push({text:'×'+this.combo,x:enemy.x,y:enemy.y-10,alpha:1,vy:-55});
+    this.ps.emit(enemy.x,enemy.y,enemy.color,20,{speedMin:60,speedMax:200,lifeMin:300,lifeMax:700,radiusMin:2,radiusMax:6});
+    this.ps.emit(enemy.x,enemy.y,'#FFFFFF',3,{speedMin:120,speedMax:280,lifeMin:150,lifeMax:340,radiusMin:1,radiusMax:3});
+    this.ps.emit(enemy.x,enemy.y,CONFIG.COLORS.gold,2,{speedMin:80,speedMax:180,lifeMin:200,lifeMax:450,radiusMin:1,radiusMax:2});
     this.audio.playPop();this._shake(4);
   }
   _shake(m){this.shakeX=(Math.random()*2-1)*m;this.shakeY=(Math.random()*2-1)*m;}
@@ -1275,11 +1295,37 @@ class Game {
     ctx.fillStyle='rgba(255,255,255,0.03)';
     for(let gx=40;gx<CONFIG.WIDTH;gx+=40)
       for(let gy=40;gy<CONFIG.HEIGHT;gy+=40){ctx.beginPath();ctx.arc(gx,gy,1,0,Math.PI*2);ctx.fill();}
+    // Drifting code characters
+    if(this._driftChars){ctx.save();ctx.font=`10px ${MONO}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='rgba(255,255,255,0.045)';for(const c of this._driftChars)ctx.fillText(c.ch,c.x,c.y);ctx.restore();}
     this.ps.draw(ctx);
     for(const e of this.enemies)e.draw(ctx);
     for(const b of this.bullets)b.draw(ctx);
     this.player.draw(ctx);
+    // Combo floaters (inside shake layer so they feel attached to the action)
+    if(this._comboFloaters&&this._comboFloaters.length){
+      ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+      for(const f of this._comboFloaters){
+        ctx.globalAlpha=Math.max(0,f.alpha);
+        ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=12;
+        ctx.font=F(18,'bold');ctx.fillText(f.text,f.x,f.y);
+      }
+      ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.restore();
+    }
     ctx.restore();
+    // Wave announcement (outside shake — stable screen position)
+    if(this._waveAnnounce&&this._waveAnnounce.timer>0){
+      const wa=this._waveAnnounce,p=wa.timer/wa.maxTimer;
+      const fadeIn=Math.min(1,(1-p)*10);      // fast in
+      const fadeOut=Math.min(1,p*1.4);         // linear out
+      const alpha=Math.max(0,Math.min(fadeIn,fadeOut));
+      const scale=1+(1-Math.min(1,(1-p)*6))*0.55; // 1.55 → 1.0 quickly
+      ctx.save();ctx.globalAlpha=alpha;
+      ctx.translate(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);ctx.scale(scale,scale);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=28;
+      ctx.font=F(52,'bold');ctx.fillText(wa.text,0,0);
+      ctx.shadowBlur=0;ctx.restore();
+    }
     this._drawHUD(ts);
     this._drawTouchOverlay();
     this._vignette(ctx);
@@ -1424,7 +1470,13 @@ class Game {
       this._newPlayerLinkBounds = null;
     }
 
-    this._vignette(ctx);ctx.restore();
+    this._vignette(ctx);
+    // Credit line
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=`10px ${MONO}`;ctx.globalAlpha=0.45;
+    ctx.fillText('🦆 Rubber Duck Debugging — a real technique since the 1990s',CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.987));
+    ctx.globalAlpha=1;ctx.restore();
+    ctx.restore();
 
     if(guardElapsed){
       if(this.input.consumeClick()){

@@ -2,6 +2,8 @@
 
 You are a rubber duck — the legendary debugging tool — and the bugs have become sentient. Waves of coding errors brought to life (NullPointerException Spiders, SegFault Snakes, InfiniteLoop Octopi, MemoryLeak Ghosts) attack from all sides, and only your rubber bullets can squash them. This is rubber duck debugging, taken literally.
 
+**Rubber duck debugging** is a real software engineering technique: a developer explains their code line by line to an inanimate rubber duck, and the act of verbalising the problem forces the clarity that reveals the bug. No duck was harmed in the making of this game.
+
 ## How to Play
 
 | Input | Action |
