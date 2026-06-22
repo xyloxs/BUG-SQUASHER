@@ -880,6 +880,7 @@ class Game {
     this._wireNameInput();
     this._initCanvas();
     window.addEventListener('resize',()=>this._initCanvas());
+    this._registerAdminConsole();
     this._startLoop();
   }
 
@@ -1052,21 +1053,102 @@ class Game {
   _shake(m){this.shakeX=(Math.random()*2-1)*m;this.shakeY=(Math.random()*2-1)*m;}
 
   async _trackClick(){
-    // Increment local counter always
-    const local = parseInt(localStorage.getItem('bugSquasher_gseClicks')||'0') + 1;
-    localStorage.setItem('bugSquasher_gseClicks', local);
-    // Fire-and-forget Firebase increment if configured
-    if(!CONFIG.CLICK_COUNTER_URL) return;
+    const ts = new Date().toISOString();
+    const entry = {
+      ts,
+      // Language & locale
+      lang:      this.lang,
+      locale:    navigator.language || 'unknown',
+      // Device & screen
+      screen:    `${screen.width}x${screen.height}`,
+      viewport:  `${window.innerWidth}x${window.innerHeight}`,
+      dpr:       window.devicePixelRatio || 1,
+      touch:     this._isTouchDevice(),
+      platform:  navigator.platform || 'unknown',
+      ua:        navigator.userAgent,
+      // Game context at click time
+      state:     this.state,
+      score:     this.score,
+      highScore: this.highScore,
+      wave:      this.waves ? this.waves.wave : 0,
+      playerName: this.playerName || '',
+      // Referrer
+      referrer:  document.referrer || 'direct',
+      url:       window.location.href,
+    };
+
+    // Persist locally (keep last 100 entries)
     try {
-      // Read current count, increment, write back
-      const r = await fetch(CONFIG.CLICK_COUNTER_URL + '.json');
-      const cur = (await r.json()) || 0;
-      await fetch(CONFIG.CLICK_COUNTER_URL + '.json', {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(typeof cur === 'number' ? cur + 1 : 1),
-      });
-    } catch(e) { /* offline — local count already saved */ }
+      const stored = JSON.parse(localStorage.getItem('bugSquasher_gseLog') || '[]');
+      stored.push(entry);
+      if (stored.length > 100) stored.splice(0, stored.length - 100);
+      localStorage.setItem('bugSquasher_gseLog', JSON.stringify(stored));
+      // Total count separate for quick read
+      const n = parseInt(localStorage.getItem('bugSquasher_gseClicks') || '0') + 1;
+      localStorage.setItem('bugSquasher_gseClicks', n);
+    } catch(e) {}
+
+    // Send to Firebase if configured (fire-and-forget)
+    if (CONFIG.CLICK_COUNTER_URL) {
+      try {
+        await fetch(CONFIG.CLICK_COUNTER_URL + '.json', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(entry),
+        });
+      } catch(e) { /* offline — already saved locally */ }
+    }
+  }
+
+  // Admin console helper — type gseAdmin() in browser DevTools
+  _registerAdminConsole(){
+    window.gseAdmin = () => {
+      const log   = JSON.parse(localStorage.getItem('bugSquasher_gseLog') || '[]');
+      const total = parseInt(localStorage.getItem('bugSquasher_gseClicks') || '0');
+      console.group('%c🦆 GSE Link Analytics', 'font-size:16px;font-weight:bold;color:#FFD60A');
+      console.log(`%cTotal clicks: ${total}`, 'font-size:14px;color:#30D158;font-weight:bold');
+      if (log.length === 0) { console.log('No click data yet.'); console.groupEnd(); return; }
+      // Summary by language
+      const byLang = {};
+      log.forEach(e => { byLang[e.lang] = (byLang[e.lang]||0)+1; });
+      console.log('%cBy language:', 'font-weight:bold;color:#64D2FF');
+      console.table(Object.entries(byLang).map(([lang,n])=>({lang,clicks:n})));
+      // Summary by device type
+      const mobile = log.filter(e=>e.touch).length;
+      console.log(`%cMobile: ${mobile}  Desktop: ${log.length-mobile}`, 'color:#BF5AF2');
+      // Summary by game state at click
+      const byState = {};
+      log.forEach(e => { byState[e.state] = (byState[e.state]||0)+1; });
+      console.log('%cClicked from state:', 'font-weight:bold;color:#64D2FF');
+      console.table(Object.entries(byState).map(([state,n])=>({state,clicks:n})));
+      // Score distribution
+      const scores = log.filter(e=>e.score>0).map(e=>e.score);
+      if (scores.length) {
+        const avg = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+        const max = Math.max(...scores);
+        console.log(`%cScore at click — avg: ${avg}  max: ${max}`, 'color:#FFD60A');
+      }
+      // Referrers
+      const byRef = {};
+      log.forEach(e => { const r=e.referrer||'direct'; byRef[r]=(byRef[r]||0)+1; });
+      console.log('%cReferrers:', 'font-weight:bold;color:#64D2FF');
+      console.table(Object.entries(byRef).map(([referrer,n])=>({referrer,clicks:n})));
+      // Full log
+      console.log('%cFull event log:', 'font-weight:bold;color:#64D2FF');
+      console.table(log.map(e=>({
+        time:   e.ts.replace('T',' ').slice(0,19),
+        lang:   e.lang,
+        device: e.touch?'📱 mobile':'🖥️ desktop',
+        screen: e.screen,
+        state:  e.state,
+        score:  e.score,
+        wave:   e.wave,
+        player: e.playerName,
+        ref:    (e.referrer||'direct').slice(0,40),
+      })));
+      console.groupEnd();
+    };
+    console.log('%c🦆 BUG SQUASHER — type gseAdmin() for link analytics', 'color:#FFD60A');
   }
 
   _drawFooter(ts){
@@ -1108,15 +1190,6 @@ class Game {
     ctx.globalAlpha  = linkHov ? 0.8 : 0.35;
     ctx.beginPath(); ctx.moveTo(cx, midY + 6); ctx.lineTo(cx + lw, midY + 6); ctx.stroke();
     ctx.globalAlpha  = 1;
-
-    // Click counter badge (local, always visible)
-    const clicks = parseInt(localStorage.getItem('bugSquasher_gseClicks')||'0');
-    if(clicks > 0){
-      ctx.fillStyle = CONFIG.COLORS.textDim;
-      ctx.font      = `9px ${MONO}`;
-      ctx.textAlign = 'right';
-      ctx.fillText(clicks + ' clicks', CONFIG.WIDTH - 8, midY);
-    }
 
     ctx.restore();
 
