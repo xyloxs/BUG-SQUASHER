@@ -82,7 +82,8 @@ const STRINGS = {
     wave_in:       'Wave {n} incoming',
     wave:          'Wave {n}',
     move:          'Move',
-    shoot:         'Shoot',
+    shoot:         'SHOOT',
+    hint_shoot:    'Click / Space / Tap to SHOOT!',
     seg_fault:     'The bugs got you!',
     core_dump:     'Better luck next time',
     intro_line1:   'The bugs have gone sentient.',
@@ -130,7 +131,8 @@ const STRINGS = {
     wave_in:       'Welle {n} kommt',
     wave:          'Welle {n}',
     move:          'Bewegen',
-    shoot:         'Schießen',
+    shoot:         'SCHIESSEN',
+    hint_shoot:    'Klick / Leertaste / Tippen zum SCHIESSEN!',
     seg_fault:     'Du wurdest geschnappt!',
     core_dump:     'Die Bugs haben gewonnen',
     intro_line1:   'Die Bugs sind lebendig geworden.',
@@ -183,7 +185,8 @@ const STRINGS = {
     wave_in:       'Vague {n} en approche',
     wave:          'Vague {n}',
     move:          'Déplacer',
-    shoot:         'Tirer',
+    shoot:         'TIRER',
+    hint_shoot:    'Clic / Espace / Tap pour TIRER !',
     seg_fault:     'Les bugs ont gagné !',
     core_dump:     'Mieux vaut réessayer',
     intro_line1:   'Les bugs sont devenus vivants.',
@@ -236,7 +239,8 @@ const STRINGS = {
     wave_in:       'Ola {n} en camino',
     wave:          'Ola {n}',
     move:          'Mover',
-    shoot:         'Disparar',
+    shoot:         'DISPARAR',
+    hint_shoot:    'Clic / Espacio / Toca para DISPARAR!',
     seg_fault:     '¡Los bugs ganaron!',
     core_dump:     'Mejor suerte la próxima vez',
     intro_line1:   'Los bugs han cobrado vida.',
@@ -290,6 +294,7 @@ const STRINGS = {
     wave:          'الموجة {n}',
     move:          'تحرك',
     shoot:         'أطلق',
+    hint_shoot:    'انقر أو المسافة للإطلاق!',
     seg_fault:     'انتهت اللعبة!',
     core_dump:     'الحشرات انتصرت',
     intro_line1:   'الحشرات أصبحت حية.',
@@ -966,6 +971,8 @@ class Game {
     this.enemies=[];this.bullets=[];this.ps=new ParticleSystem();this.waves=new WaveManager();
     this.player=new Player(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);
     this.shakeX=0;this.shakeY=0;this.scoreSubmitted=false;
+    this._shootHint={active:true,timer:0};
+    this._hasKilled=false;
     this._comboFloaters=[];this._waveAnnounce=null;this._prevWaveState='gap';
     this._driftChars=Array.from({length:20},()=>({
       ch:['{}','()','[]','<>','//','&&','||','!=','==','++'][Math.floor(Math.random()*10)],
@@ -1034,6 +1041,10 @@ class Game {
     if(this._comboFloaters){const s=dt*0.001;this._comboFloaters.forEach(f=>{f.y+=f.vy*s;f.alpha-=s*1.2;});this._comboFloaters=this._comboFloaters.filter(f=>f.alpha>0);}
     // Drift chars
     if(this._driftChars){const s=dt*0.001;const syms=['{}','()','[]','<>','//','&&','||','!=','==','++'];for(const c of this._driftChars){c.y+=c.speed*s;if(c.y>CONFIG.HEIGHT+20){c.y=-20;c.x=Math.random()*CONFIG.WIDTH;c.ch=syms[Math.floor(Math.random()*syms.length)];}}}
+    if(this._shootHint&&this._shootHint.active&&this.waves.state==='active'&&this.waves.wave===1){
+      this._shootHint.timer+=dt;
+      if(this._shootHint.timer>5000)this._shootHint.active=false;
+    }
     this.shakeX*=CONFIG.SHAKE_DECAY;this.shakeY*=CONFIG.SHAKE_DECAY;
     if(Math.abs(this.shakeX)<0.1)this.shakeX=0;if(Math.abs(this.shakeY)<0.1)this.shakeY=0;
     this._checkCollisions();
@@ -1060,12 +1071,29 @@ class Game {
   _onKill(enemy){
     this.combo=Math.min(this.combo+1,10);this.comboTimer=CONFIG.COMBO_RESET_MS;
     this.score+=(CONFIG.BASE_SCORES[enemy.constructor.name]||10)*this.combo;
+    if(!this._hasKilled){this._hasKilled=true;if(this._shootHint)this._shootHint.active=false;}
     if(this.combo>1)this._comboFloaters.push({text:'×'+this.combo,x:enemy.x,y:enemy.y-10,alpha:1,vy:-55});
     this.ps.emit(enemy.x,enemy.y,enemy.color,20,{speedMin:60,speedMax:200,lifeMin:300,lifeMax:700,radiusMin:2,radiusMax:6});
     this.ps.emit(enemy.x,enemy.y,'#FFFFFF',3,{speedMin:120,speedMax:280,lifeMin:150,lifeMax:340,radiusMin:1,radiusMax:3});
     this.ps.emit(enemy.x,enemy.y,CONFIG.COLORS.gold,2,{speedMin:80,speedMax:180,lifeMin:200,lifeMax:450,radiusMin:1,radiusMax:2});
     this.audio.playPop();this._shake(4);
   }
+  _drawShootHint(ts){
+    if(!this._shootHint||!this._shootHint.active)return;
+    if(this.waves.wave>1)return;
+    const ctx=this.ctx;
+    const pulse=0.6+0.4*Math.abs(Math.sin(ts*0.003));
+    ctx.save();
+    ctx.globalAlpha=pulse;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=CONFIG.COLORS.gold;
+    ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=20;
+    ctx.font=F(18,'bold');
+    fillTextFit(ctx,T('hint_shoot'),CONFIG.WIDTH/2,CONFIG.HEIGHT/2+60,CONFIG.WIDTH-80,18,'bold');
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
   _shake(m){this.shakeX=(Math.random()*2-1)*m;this.shakeY=(Math.random()*2-1)*m;}
 
   async _trackClick(){
@@ -1505,11 +1533,16 @@ class Game {
     // Hairline under title
     ctx.strokeStyle=CONFIG.COLORS.border;ctx.lineWidth=0.5;
     ctx.beginPath();ctx.moveTo(ctrlX+16,ctrlY+22);ctx.lineTo(ctrlX+ctrlW-16,ctrlY+22);ctx.stroke();
-    // Instruction lines
-    ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(11);
+    // Instruction lines — shoot row highlighted in gold
     ctrlLines.forEach((ln,i)=>{
-      fillTextFit(ctx,ln,cx,ctrlY+36+i*20,ctrlW-28,11);
+      const isShoot = i===1; // shoot is always second line on both touch and desktop
+      ctx.fillStyle = isShoot ? CONFIG.COLORS.gold : CONFIG.COLORS.textSec;
+      ctx.shadowColor = isShoot ? CONFIG.COLORS.gold : 'transparent';
+      ctx.shadowBlur  = isShoot ? 6 : 0;
+      ctx.font = F(isShoot ? 12 : 11, isShoot ? 'bold' : undefined);
+      fillTextFit(ctx,ln,cx,ctrlY+36+i*20,ctrlW-28,isShoot?12:11,isShoot?'bold':undefined);
     });
+    ctx.shadowBlur=0;
     ctx.restore();
 
     // Enemy previews — placed below controls with safe gap
@@ -1587,6 +1620,8 @@ class Game {
     for(const e of this.enemies)e.draw(ctx);
     for(const b of this.bullets)b.draw(ctx);
     this.player.draw(ctx);
+    // Shoot hint — only wave 1, before first kill
+    this._drawShootHint(ts);
     // Combo floaters (inside shake layer so they feel attached to the action)
     if(this._comboFloaters&&this._comboFloaters.length){
       ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1726,7 +1761,11 @@ class Game {
     ctx.shadowBlur=0;
     ctx.fillStyle=pressed?CONFIG.COLORS.bg:'rgba(255,255,255,0.8)';
     ctx.font='26px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('🦆',btnX,btnY+1);
+    ctx.fillText('🦆',btnX,btnY-4);
+    // "SHOOT" label
+    ctx.fillStyle=pressed?CONFIG.COLORS.bg:'rgba(255,255,255,0.6)';
+    ctx.font=F(9,'bold');ctx.textBaseline='middle';
+    ctx.fillText(T('shoot'),btnX,btnY+btnR-14);
 
     ctx.restore();
   }
