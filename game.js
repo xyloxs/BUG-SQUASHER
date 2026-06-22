@@ -433,7 +433,9 @@ class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const p = toCanvas(t.clientX, t.clientY);
-        // Always register as click/action so menu screens respond to any tap
+        // Mirror touch position into mouse so hit-tests on menu screens work
+        this.mouse.x = p.x;
+        this.mouse.y = p.y;
         this._clickConsumed = true;
         this._actionConsumed = true;
         if (p.x < CONFIG.WIDTH / 2) {
