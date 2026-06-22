@@ -4,6 +4,21 @@ All notable changes to **BUG-SQUASHER** are listed here.
 
 ---
 
+## v1.4.0 — 2026-06-22
+
+### New Features
+
+| Feature | Description |
+|---|---|
+| **Arabic language (العربية)** | Full RTL support — all 47 strings translated |
+| **RTL layout mirroring** | Hearts HUD, combo, player badge, back link, leaderboard columns all mirror for Arabic |
+| **Arabic font stack** | `SYS_AR`: Geeza Pro (iOS/macOS), Arabic Typesetting (Windows), Noto Sans Arabic (Android) |
+| **5-language picker** | 🇩🇪 🇬🇧 🇫🇷 🇪🇸 🇸🇦 in a 2×2 grid with Arabic card centered in row 3 |
+| **`ctx.direction` RTL** | Set per draw-function for correct Canvas text rendering; lang select stays LTR while language not yet chosen |
+| **`isRTL()` / `rtlAlign()` / `F()` helpers** | Clean, reusable helpers; single point of control for language-conditional layout |
+
+---
+
 ## v1.3.0 — 2026-06-22
 
 ### Fixes
