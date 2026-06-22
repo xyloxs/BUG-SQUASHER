@@ -785,7 +785,7 @@ class Player extends Entity {
 class Spider extends Entity {
   constructor(x,y,speed){
     super(x,y,14);
-    this.hp=3;this.speed=speed!==undefined?speed:(155+Math.random()*55);
+    this.hp=3;this.speed=speed!==undefined?speed:(110+Math.random()*40);
     this.legPhase=Math.random()*Math.PI*2;this.color=CONFIG.COLORS.spider;
     this.skinTone=SKIN_TONES[Math.floor(Math.random()*SKIN_TONES.length)];
   }
@@ -1048,11 +1048,11 @@ class WaveManager {
   }
   _buildWave(){
     const w=this.wave,types=[];
-    const mob=window.__isMobile?1.4:1.0; // 40% more enemies on mobile
-    const nSp=Math.min(Math.round((2+w)*mob),14);
-    const nSn=Math.max(0,Math.round(w*mob));
-    const nOc=Math.max(0,Math.round(Math.floor((w-1)/2)*mob));
-    const nGh=Math.max(0,Math.round(Math.floor((w-2)/3)*mob));
+    // Mobile gets auto-aim advantage — no extra enemy count bonus needed
+    const nSp=Math.min(2+w, 10);
+    const nSn=Math.max(0,Math.floor((w-1)/2));   // snakes from wave 2 (was wave 1)
+    const nOc=Math.max(0,Math.floor((w-2)/2));
+    const nGh=Math.max(0,Math.floor((w-3)/3));
     for(let i=0;i<nSp;i++)types.push('Spider');
     for(let i=0;i<nSn;i++)types.push('Snake');
     for(let i=0;i<nOc;i++)types.push('Octopus');
@@ -1068,8 +1068,8 @@ class WaveManager {
     else if(type==='Snake')   e=new Snake(pos.x,pos.y,p);
     else if(type==='Octopus') e=new Octopus(pos.x,pos.y);
     else e=new Ghost(pos.x,pos.y);
-    // Mobile: enemies take significantly more hits
-    if(window.__isMobile) e.hp=Math.ceil(e.hp*2.0);
+    // Mobile: slightly more HP to compensate for auto-aim advantage, but not double
+    if(window.__isMobile) e.hp=Math.ceil(e.hp*1.4);
     return e;
   }
   injectPlayer(player){for(const e of this.spawnQueue)e.player=player;}
