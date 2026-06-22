@@ -1590,16 +1590,23 @@ class Game {
     // Wave announcement (outside shake — stable screen position)
     if(this._waveAnnounce&&this._waveAnnounce.timer>0){
       const wa=this._waveAnnounce,p=wa.timer/wa.maxTimer;
-      const fadeIn=Math.min(1,(1-p)*10);      // fast in
-      const fadeOut=Math.min(1,p*1.4);         // linear out
-      const alpha=Math.max(0,Math.min(fadeIn,fadeOut));
-      const scale=1+(1-Math.min(1,(1-p)*6))*0.55; // 1.55 → 1.0 quickly
+      const fadeIn=Math.min(1,(1-p)*10);
+      const fadeOut=Math.min(1,p*1.4);
+      const alpha=Math.max(0,Math.min(fadeIn,fadeOut))*0.5; // 50% transparent
+      const scale=1+(1-Math.min(1,(1-p)*6))*0.55;
       ctx.save();ctx.globalAlpha=alpha;
       ctx.translate(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);ctx.scale(scale,scale);
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillStyle=CONFIG.COLORS.gold;ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=28;
-      ctx.font=F(52,'bold');ctx.fillText(wa.text,0,0);
-      ctx.shadowBlur=0;ctx.restore();
+      // Thin black stroke (outline) around letters
+      ctx.strokeStyle='rgba(0,0,0,0.9)';
+      ctx.lineWidth=3;
+      ctx.lineJoin='round';
+      ctx.font=F(104,'bold'); // double size (was 52)
+      ctx.strokeText(wa.text,0,0);
+      // Fill on top
+      ctx.fillStyle=CONFIG.COLORS.gold;
+      ctx.fillText(wa.text,0,0);
+      ctx.restore();
     }
     this._drawHUD(ts);
     this._drawTouchOverlay();
