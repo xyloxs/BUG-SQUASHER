@@ -505,8 +505,12 @@ class InputManager {
     if (this.keys['KeyA'] || this.keys['ArrowLeft'])  dx -= 1;
     if (this.keys['KeyD'] || this.keys['ArrowRight']) dx += 1;
     if (dx === 0 && dy === 0 && this.touch.joystick.active) {
-      const jdx = this.touch.joystick.curX - this.touch.joystick.startX;
-      const jdy = this.touch.joystick.curY - this.touch.joystick.startY;
+      // Use fixed joystick center (outerR=52, margin=28) so stick tracks from visual center
+      const footerH = 22, outerR = 52;
+      const jbX = outerR + 28;
+      const jbY = CONFIG.HEIGHT - footerH - outerR - 14;
+      const jdx = this.touch.joystick.curX - jbX;
+      const jdy = this.touch.joystick.curY - jbY;
       const jl  = Math.hypot(jdx, jdy);
       if (jl > 8) { dx = jdx / jl; dy = jdy / jl; }
     }
@@ -1656,17 +1660,56 @@ class Game {
     if(!this._isTouchDevice())return;
     const ctx=this.ctx;
     const j=this.input.touch.joystick,s=this.input.touch.shoot;
+
     ctx.save();
-    if(j.active){
-      const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=48;
-      const cx=j.startX+(dist>maxR?(dx/dist)*maxR:dx),cy=j.startY+(dist>maxR?(dy/dist)*maxR:dy);
-      ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(j.startX,j.startY,maxR,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.25)';
-      ctx.beginPath();ctx.arc(cx,cy,20,0,Math.PI*2);ctx.fill();
-    }
-    // Shoot button — raised above footer (footer = 22px)
+
+    // ---- Permanent joystick (always visible, bottom-left) ----
     const footerH=22;
+    const outerR=52;
+    const innerR=22;
+    const jbX=outerR+28;                          // fixed center X
+    const jbY=CONFIG.HEIGHT-footerH-outerR-14;    // fixed center Y
+
+    // Compute stick position
+    let stickX=jbX,stickY=jbY;
+    if(j.active){
+      const dx=j.curX-j.startX,dy=j.curY-j.startY;
+      const dist=Math.hypot(dx,dy);
+      const maxR=outerR-innerR;
+      const clamp=Math.min(1,maxR/(dist||1));
+      stickX=jbX+dx*clamp;
+      stickY=jbY+dy*clamp;
+    }
+
+    // Outer ring
+    ctx.strokeStyle='rgba(255,255,255,0.22)';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(jbX,jbY,outerR,0,Math.PI*2);ctx.stroke();
+
+    // Inner base fill (subtle)
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    ctx.beginPath();ctx.arc(jbX,jbY,outerR,0,Math.PI*2);ctx.fill();
+
+    // Cardinal dot guides
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    for(const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+      ctx.beginPath();ctx.arc(jbX+dx*(outerR-10),jbY+dy*(outerR-10),2,0,Math.PI*2);ctx.fill();
+    }
+
+    // Stick knob
+    const active=j.active;
+    ctx.fillStyle=active?'rgba(255,255,255,0.55)':'rgba(255,255,255,0.28)';
+    ctx.shadowColor=active?'rgba(255,255,255,0.4)':'transparent';
+    ctx.shadowBlur=active?12:0;
+    ctx.beginPath();ctx.arc(stickX,stickY,innerR,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Stroke on knob
+    ctx.strokeStyle=active?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.3)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(stickX,stickY,innerR,0,Math.PI*2);ctx.stroke();
+
+    // ---- Shoot button (always visible, bottom-right) ----
     const btnR=44,btnX=CONFIG.WIDTH-btnR-24,btnY=CONFIG.HEIGHT-footerH-btnR-14,pressed=s.active;
     ctx.strokeStyle=pressed?CONFIG.COLORS.player:'rgba(255,255,255,0.3)';
     ctx.lineWidth=2.5;
@@ -1679,6 +1722,7 @@ class Game {
     ctx.fillStyle=pressed?CONFIG.COLORS.bg:'rgba(255,255,255,0.8)';
     ctx.font='26px serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText('🦆',btnX,btnY+1);
+
     ctx.restore();
   }
 
