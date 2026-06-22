@@ -1,8 +1,9 @@
 // =============================================================================
-// BUG SQUASHER — Rubber Duck Debugging: The Game  v1.2.0
+// BUG SQUASHER — Rubber Duck Debugging: The Game  v1.3.0
 // =============================================================================
 // Architecture:
 //   CONFIG / STRINGS / T()  — constants, i18n translations, translation helper
+//   SYS                     — system font stack (Apple-like UI)
 //   AudioManager            — Web Audio API synthesized sounds (no files)
 //   InputManager            — keyboard + mouse + virtual touch joystick
 //   Particle / ParticleSystem
@@ -13,6 +14,11 @@
 // State machine:  LANG_SELECT → NAME_INPUT → MENU → PLAYING → PAUSED → GAME_OVER
 //                                            MENU ←────────────────────────────┘
 // =============================================================================
+
+// System font for clean UI text (Apple HIG)
+const SYS = "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif";
+// Monospace for code-themed elements (scores, error messages, wave labels)
+const MONO = "'Courier New', Courier, monospace";
 
 // =============================================================================
 // CONFIG
@@ -41,23 +47,29 @@ const CONFIG = {
   LANG_KEY:        'bugSquasher_lang',
   SCORES_KEY:      'bugSquasher_scores',
 
-  // Set a Firebase Realtime DB URL here to enable online leaderboard.
-  // e.g. 'https://your-project-default-rtdb.firebaseio.com/scores'
+  // Set a Firebase Realtime DB URL to enable online leaderboard.
   LEADERBOARD_URL: '',
 
   COLORS: {
-    bg:      '#0d1117',
-    player:  '#FFD700',
-    bullet:  '#FFE066',
-    spider:  '#cc2200',
-    snake:   '#39FF14',
-    octopus: '#9B59B6',
-    ghost:   '#00FFFF',
-    hud:     '#E6EDF3',
-    accent:  '#58A6FF',
-    dim:     '#8B949E',
-    card:    '#161b22',
-    cardHov: '#1f2937',
+    bg:       '#0a0e17',
+    player:   '#FFD700',
+    bullet:   '#FFE066',
+    spider:   '#cc2200',
+    snake:    '#39FF14',
+    octopus:  '#9B59B6',
+    ghost:    '#00FFFF',
+    // UI colors — Apple-inspired
+    textPri:  '#F1F5F9',
+    textSec:  '#64748B',
+    textDim:  '#334155',
+    accent:   '#3B82F6',
+    gold:     '#FFD700',
+    error:    '#EF4444',
+    success:  '#10B981',
+    // Surface
+    surface:  'rgba(255,255,255,0.04)',
+    border:   'rgba(255,255,255,0.08)',
+    overlay:  'rgba(10,14,23,0.82)',
   }
 };
 
@@ -73,39 +85,41 @@ const STRINGS = {
     ctrl_move:     'WASD / ARROWS — move',
     ctrl_shoot:    'MOUSE + CLICK — shoot',
     ctrl_pause:    'P — pause',
-    start_t:       '[ TAP TO START ]',
-    start:         '[ CLICK OR SPACE TO START ]',
-    hi_score:      'HIGH SCORE',
-    paused:        '// PAUSED',
-    resume_t:      'TAP ANYWHERE TO RESUME',
-    resume:        'PRESS P TO RESUME',
-    get_ready:     'GET READY...',
-    wave_in:       'WAVE {n} INCOMING...',
+    start_t:       'Tap anywhere to start',
+    start:         'Click or press Space to start',
+    hi_score:      'Best',
+    paused:        'PAUSED',
+    resume_t:      'Tap anywhere to resume',
+    resume:        'Press P to resume',
+    get_ready:     'Get ready…',
+    wave_in:       'WAVE {n} incoming',
     wave:          'WAVE {n}',
     move:          'MOVE',
     shoot:         'SHOOT',
     seg_fault:     'SEGMENTATION FAULT',
     core_dump:     '(core dumped)',
-    score_lbl:     'SCORE',
-    new_hi:        'NEW HIGH SCORE!',
-    best:          'BEST',
-    restart_t:     '[ TAP TO RESTART ]',
-    restart:       '[ CLICK OR SPACE TO RESTART ]',
-    lang_title:    'SELECT LANGUAGE',
+    score_lbl:     'Score',
+    new_hi:        'New personal best!',
+    best:          'Best',
+    restart_t:     'Tap to play again',
+    restart:       'Click or Space to play again',
+    lang_title:    'Choose your language',
     lang_sub:      'Your browser language was pre-selected',
-    name_title:    'ENTER YOUR NAME',
-    name_sub:      'This will appear on the leaderboard',
-    name_hint:     'Press ENTER to confirm',
-    name_hint_t:   'Tap CONFIRM to continue',
-    name_back:     '← back',
-    name_confirm:  'CONFIRM →',
-    leaderboard:   'LEADERBOARD',
-    submitting:    'Saving score...',
+    name_title:    'What\'s your name?',
+    name_sub:      'Appears on the leaderboard',
+    name_hint:     'Press Enter to confirm',
+    name_hint_t:   'Tap Confirm to continue',
+    name_back:     'Back',
+    name_confirm:  'Confirm',
+    leaderboard:   'Leaderboard',
+    submitting:    'Saving…',
     lb_rank:       '#',
-    lb_name:       'NAME',
-    lb_score:      'SCORE',
-    lb_wave:       'WAVE',
-    lb_offline:    'Offline — score saved locally',
+    lb_name:       'Name',
+    lb_score:      'Score',
+    lb_wave:       'Wave',
+    lb_offline:    'Scores saved locally',
+    lb_empty:      'No scores yet',
+    lb_you:        'You',
     enemy_spider:  'NULL PTR SPIDER',
     enemy_snake:   'SEGFAULT SNAKE',
     enemy_octopus: 'INFINITE LOOP ∞',
@@ -114,45 +128,47 @@ const STRINGS = {
   },
   de: {
     subtitle:      'Rubber-Duck-Debugging, wörtlich genommen',
-    ctrl_move_t:   'LINKS TIPPEN — bewegen',
-    ctrl_shoot_t:  'RECHTS TIPPEN — zielen + schießen',
-    ctrl_both_t:   'Beide Seiten gleichzeitig nutzen',
+    ctrl_move_t:   'LINKS — bewegen',
+    ctrl_shoot_t:  'RECHTS — zielen + schießen',
+    ctrl_both_t:   'Beide Seiten gleichzeitig',
     ctrl_move:     'WASD / PFEILE — bewegen',
     ctrl_shoot:    'MAUS + KLICK — schießen',
     ctrl_pause:    'P — Pause',
-    start_t:       '[ TIPPEN UM ZU STARTEN ]',
-    start:         '[ KLICKEN ODER LEERTASTE ]',
-    hi_score:      'HIGHSCORE',
-    paused:        '// PAUSE',
-    resume_t:      'TIPPEN UM FORTZUFAHREN',
-    resume:        'P DRÜCKEN UM FORTZUFAHREN',
-    get_ready:     'BEREIT MACHEN...',
-    wave_in:       'WELLE {n} KOMMT...',
+    start_t:       'Tippen um zu starten',
+    start:         'Klicken oder Leertaste',
+    hi_score:      'Bestzeit',
+    paused:        'PAUSE',
+    resume_t:      'Tippen um fortzufahren',
+    resume:        'P drücken um fortzufahren',
+    get_ready:     'Bereit machen…',
+    wave_in:       'WELLE {n} kommt',
     wave:          'WELLE {n}',
     move:          'BEWEGEN',
     shoot:         'SCHIESSEN',
     seg_fault:     'SEGMENTATION FAULT',
     core_dump:     '(core dumped)',
-    score_lbl:     'PUNKTE',
-    new_hi:        'NEUER HIGHSCORE!',
-    best:          'BEST',
-    restart_t:     '[ TIPPEN ZUM NEUSTART ]',
-    restart:       '[ KLICK ODER LEERTASTE ]',
-    lang_title:    'SPRACHE WÄHLEN',
+    score_lbl:     'Punkte',
+    new_hi:        'Neuer Highscore!',
+    best:          'Beste',
+    restart_t:     'Tippen zum Neustart',
+    restart:       'Klick oder Leertaste',
+    lang_title:    'Sprache wählen',
     lang_sub:      'Deine Browser-Sprache wurde vorausgewählt',
-    name_title:    'DEINEN NAMEN EINGEBEN',
-    name_sub:      'Er erscheint in der Bestenliste',
-    name_hint:     'ENTER drücken zum Bestätigen',
-    name_hint_t:   'BESTÄTIGEN tippen',
-    name_back:     '← zurück',
-    name_confirm:  'BESTÄTIGEN →',
-    leaderboard:   'BESTENLISTE',
-    submitting:    'Punkte werden gespeichert...',
+    name_title:    'Wie heißt du?',
+    name_sub:      'Erscheint in der Bestenliste',
+    name_hint:     'Enter drücken zum Bestätigen',
+    name_hint_t:   'Bestätigen tippen',
+    name_back:     'Zurück',
+    name_confirm:  'Bestätigen',
+    leaderboard:   'Bestenliste',
+    submitting:    'Speichern…',
     lb_rank:       '#',
-    lb_name:       'NAME',
-    lb_score:      'PUNKTE',
-    lb_wave:       'WELLE',
-    lb_offline:    'Offline — lokal gespeichert',
+    lb_name:       'Name',
+    lb_score:      'Punkte',
+    lb_wave:       'Welle',
+    lb_offline:    'Lokal gespeichert',
+    lb_empty:      'Noch keine Einträge',
+    lb_you:        'Du',
     enemy_spider:  'NULL-PTR-SPINNE',
     enemy_snake:   'SEGFAULT-SCHLANGE',
     enemy_octopus: 'ENDLOSSCHLEIFE ∞',
@@ -163,43 +179,45 @@ const STRINGS = {
     subtitle:      'débogage par canard en caoutchouc, au pied de la lettre',
     ctrl_move_t:   'GAUCHE — déplacer',
     ctrl_shoot_t:  'DROITE — viser + tirer',
-    ctrl_both_t:   'Utiliser les deux côtés simultanément',
+    ctrl_both_t:   'Utiliser les deux côtés',
     ctrl_move:     'WASD / FLÈCHES — déplacer',
     ctrl_shoot:    'SOURIS + CLIC — tirer',
     ctrl_pause:    'P — pause',
-    start_t:       '[ TOUCHER POUR COMMENCER ]',
-    start:         '[ CLIC OU ESPACE POUR COMMENCER ]',
-    hi_score:      'MEILLEUR SCORE',
-    paused:        '// PAUSE',
-    resume_t:      'TOUCHER POUR REPRENDRE',
-    resume:        'APPUYER P POUR REPRENDRE',
-    get_ready:     'PRÉPAREZ-VOUS...',
-    wave_in:       'VAGUE {n} EN APPROCHE...',
+    start_t:       'Toucher pour commencer',
+    start:         'Clic ou Espace pour commencer',
+    hi_score:      'Meilleur',
+    paused:        'PAUSE',
+    resume_t:      'Toucher pour reprendre',
+    resume:        'Appuyer P pour reprendre',
+    get_ready:     'Préparez-vous…',
+    wave_in:       'VAGUE {n} en approche',
     wave:          'VAGUE {n}',
     move:          'DÉPLACER',
     shoot:         'TIRER',
     seg_fault:     'SEGMENTATION FAULT',
     core_dump:     '(core dumped)',
-    score_lbl:     'SCORE',
-    new_hi:        'NOUVEAU RECORD!',
-    best:          'MEILLEUR',
-    restart_t:     '[ TOUCHER POUR RECOMMENCER ]',
-    restart:       '[ CLIC OU ESPACE POUR RECOMMENCER ]',
-    lang_title:    'CHOISIR LA LANGUE',
-    lang_sub:      'La langue de votre navigateur a été présélectionnée',
-    name_title:    'ENTREZ VOTRE NOM',
-    name_sub:      'Il apparaîtra dans le classement',
-    name_hint:     'ENTRÉE pour confirmer',
-    name_hint_t:   'Appuyer sur CONFIRMER',
-    name_back:     '← retour',
-    name_confirm:  'CONFIRMER →',
-    leaderboard:   'CLASSEMENT',
-    submitting:    'Enregistrement du score...',
+    score_lbl:     'Score',
+    new_hi:        'Nouveau record!',
+    best:          'Meilleur',
+    restart_t:     'Toucher pour rejouer',
+    restart:       'Clic ou Espace pour rejouer',
+    lang_title:    'Choisir la langue',
+    lang_sub:      'Langue du navigateur présélectionnée',
+    name_title:    'Quel est votre nom?',
+    name_sub:      'Apparaîtra dans le classement',
+    name_hint:     'Entrée pour confirmer',
+    name_hint_t:   'Appuyer sur Confirmer',
+    name_back:     'Retour',
+    name_confirm:  'Confirmer',
+    leaderboard:   'Classement',
+    submitting:    'Enregistrement…',
     lb_rank:       '#',
-    lb_name:       'NOM',
-    lb_score:      'SCORE',
-    lb_wave:       'VAGUE',
-    lb_offline:    'Hors ligne — score enregistré localement',
+    lb_name:       'Nom',
+    lb_score:      'Score',
+    lb_wave:       'Vague',
+    lb_offline:    'Enregistré localement',
+    lb_empty:      'Pas encore de scores',
+    lb_you:        'Vous',
     enemy_spider:  'ARAIGNÉE NULL PTR',
     enemy_snake:   'SERPENT SEGFAULT',
     enemy_octopus: 'PIEUVRE BOUCLE ∞',
@@ -210,43 +228,45 @@ const STRINGS = {
     subtitle:      'depuración con pato de goma, tomada literalmente',
     ctrl_move_t:   'IZQUIERDA — mover',
     ctrl_shoot_t:  'DERECHA — apuntar + disparar',
-    ctrl_both_t:   'Usar ambos lados simultáneamente',
+    ctrl_both_t:   'Usar ambos lados a la vez',
     ctrl_move:     'WASD / FLECHAS — mover',
     ctrl_shoot:    'RATÓN + CLIC — disparar',
     ctrl_pause:    'P — pausa',
-    start_t:       '[ TOCA PARA COMENZAR ]',
-    start:         '[ CLIC O ESPACIO PARA COMENZAR ]',
-    hi_score:      'PUNTUACIÓN MÁX.',
-    paused:        '// PAUSA',
-    resume_t:      'TOCA PARA CONTINUAR',
-    resume:        'PRESIONA P PARA CONTINUAR',
-    get_ready:     'PREPÁRATE...',
-    wave_in:       'OLA {n} EN CAMINO...',
+    start_t:       'Toca para comenzar',
+    start:         'Clic o Espacio para comenzar',
+    hi_score:      'Mejor',
+    paused:        'PAUSA',
+    resume_t:      'Toca para continuar',
+    resume:        'Presiona P para continuar',
+    get_ready:     'Prepárate…',
+    wave_in:       'OLA {n} en camino',
     wave:          'OLA {n}',
     move:          'MOVER',
     shoot:         'DISPARAR',
     seg_fault:     'SEGMENTATION FAULT',
     core_dump:     '(core dumped)',
-    score_lbl:     'PUNTOS',
-    new_hi:        '¡NUEVO RÉCORD!',
-    best:          'MEJOR',
-    restart_t:     '[ TOCA PARA REINICIAR ]',
-    restart:       '[ CLIC O ESPACIO PARA REINICIAR ]',
-    lang_title:    'SELECCIONAR IDIOMA',
-    lang_sub:      'El idioma de tu navegador fue preseleccionado',
-    name_title:    'INGRESA TU NOMBRE',
-    name_sub:      'Aparecerá en la tabla de clasificación',
-    name_hint:     'ENTER para confirmar',
-    name_hint_t:   'Toca CONFIRMAR',
-    name_back:     '← atrás',
-    name_confirm:  'CONFIRMAR →',
-    leaderboard:   'CLASIFICACIÓN',
-    submitting:    'Guardando puntuación...',
+    score_lbl:     'Puntos',
+    new_hi:        '¡Nuevo récord!',
+    best:          'Mejor',
+    restart_t:     'Toca para jugar de nuevo',
+    restart:       'Clic o Espacio para jugar de nuevo',
+    lang_title:    'Seleccionar idioma',
+    lang_sub:      'Idioma del navegador preseleccionado',
+    name_title:    '¿Cómo te llamas?',
+    name_sub:      'Aparecerá en la clasificación',
+    name_hint:     'Enter para confirmar',
+    name_hint_t:   'Toca Confirmar',
+    name_back:     'Atrás',
+    name_confirm:  'Confirmar',
+    leaderboard:   'Clasificación',
+    submitting:    'Guardando…',
     lb_rank:       '#',
-    lb_name:       'NOMBRE',
-    lb_score:      'PUNTOS',
-    lb_wave:       'OLA',
-    lb_offline:    'Sin conexión — guardado localmente',
+    lb_name:       'Nombre',
+    lb_score:      'Puntos',
+    lb_wave:       'Ola',
+    lb_offline:    'Guardado localmente',
+    lb_empty:      'Sin puntuaciones aún',
+    lb_you:        'Tú',
     enemy_spider:  'ARAÑA NULL PTR',
     enemy_snake:   'SERPIENTE SEGFAULT',
     enemy_octopus: 'PULPO BUCLE ∞',
@@ -255,7 +275,6 @@ const STRINGS = {
   },
 };
 
-// T(key, n) — translate with optional {n} substitution
 function T(key, n) {
   const lang = window.__bsLang || 'en';
   const dict = STRINGS[lang] || STRINGS.en;
@@ -269,31 +288,25 @@ function T(key, n) {
 // =============================================================================
 class AudioManager {
   constructor() { this.actx = null; }
-
   _ensure() {
     if (!this.actx) this.actx = new (window.AudioContext || window.webkitAudioContext)();
     if (this.actx.state === 'suspended') this.actx.resume();
   }
-
   _tone(freq, type, duration, volume, attack) {
     this._ensure();
     const now = this.actx.currentTime;
-    const osc = this.actx.createOscillator();
-    const g   = this.actx.createGain();
+    const osc = this.actx.createOscillator(), g = this.actx.createGain();
     osc.connect(g); g.connect(this.actx.destination);
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
     g.gain.setValueAtTime(0, now);
     g.gain.linearRampToValueAtTime(volume * CONFIG.MASTER_VOLUME, now + (attack || 0.005));
     g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
     osc.start(now); osc.stop(now + duration + 0.02);
   }
-
   _sweep(f0, f1, type, duration, volume) {
     this._ensure();
     const now = this.actx.currentTime;
-    const osc = this.actx.createOscillator();
-    const g   = this.actx.createGain();
+    const osc = this.actx.createOscillator(), g = this.actx.createGain();
     osc.connect(g); g.connect(this.actx.destination);
     osc.type = type;
     osc.frequency.setValueAtTime(f0, now);
@@ -302,20 +315,16 @@ class AudioManager {
     g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
     osc.start(now); osc.stop(now + duration + 0.02);
   }
-
   playShoot()  { this._tone(880,  'sine',     0.08, 0.4,  0.003); }
   playPop()    { this._sweep(440, 110, 'triangle', 0.18, 0.5); }
   playHurt()   { this._tone(120,  'sawtooth', 0.35, 0.6,  0.002); }
-
   playWaveClear() {
     this._ensure();
     [261.63, 329.63, 392.00].forEach((freq, i) => {
       const now = this.actx.currentTime + i * 0.085;
-      const osc = this.actx.createOscillator();
-      const g   = this.actx.createGain();
+      const osc = this.actx.createOscillator(), g = this.actx.createGain();
       osc.connect(g); g.connect(this.actx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now);
       g.gain.setValueAtTime(0, now);
       g.gain.linearRampToValueAtTime(0.28 * CONFIG.MASTER_VOLUME, now + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
@@ -342,7 +351,6 @@ class InputManager {
     this._bindMouse(canvas);
     this._bindTouch(canvas);
   }
-
   _bindKeyboard() {
     window.addEventListener('keydown', e => {
       this.keys[e.code] = true;
@@ -351,7 +359,6 @@ class InputManager {
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
   }
-
   _bindMouse(canvas) {
     canvas.addEventListener('mousemove', e => {
       const r = canvas.getBoundingClientRect();
@@ -364,15 +371,10 @@ class InputManager {
     });
     canvas.addEventListener('mouseup', () => { this.mouse.down = false; });
   }
-
   _bindTouch(canvas) {
     const toCanvas = (cx, cy) => {
-      const r   = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      return {
-        x: (cx - r.left) * (canvas.width  / r.width  / dpr),
-        y: (cy - r.top)  * (canvas.height / r.height / dpr),
-      };
+      const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      return { x: (cx - r.left) * (canvas.width / r.width / dpr), y: (cy - r.top) * (canvas.height / r.height / dpr) };
     };
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
@@ -390,12 +392,8 @@ class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const p = toCanvas(t.clientX, t.clientY);
-        if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) {
-          this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y;
-        }
-        if (this.touch.shoot.active && t.identifier === this.touch.shoot.id) {
-          this.touch.shoot.x = p.x; this.touch.shoot.y = p.y;
-        }
+        if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) { this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y; }
+        if (this.touch.shoot.active   && t.identifier === this.touch.shoot.id)    { this.touch.shoot.x = p.x; this.touch.shoot.y = p.y; }
       }
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
@@ -406,7 +404,6 @@ class InputManager {
       }
     }, { passive: false });
   }
-
   getMoveVector() {
     let dx = 0, dy = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp'])    dy -= 1;
@@ -422,16 +419,15 @@ class InputManager {
     const len = Math.hypot(dx, dy);
     return len > 0 ? { x: dx / len, y: dy / len } : { x: 0, y: 0 };
   }
-
   getAimAngle(px, py) {
     if (this.touch.shoot.active) return Math.atan2(this.touch.shoot.y - py, this.touch.shoot.x - px);
     return Math.atan2(this.mouse.y - py, this.mouse.x - px);
   }
-
   isShootingHeld() { return this.mouse.down || this.touch.shoot.active; }
   consumePause()   { const v = this._pauseConsumed;  this._pauseConsumed  = false; return v; }
   consumeAction()  { const v = this._actionConsumed; this._actionConsumed = false; return v; }
   consumeClick()   { const v = this._clickConsumed;  this._clickConsumed  = false; return v; }
+  clearAll()       { this._pauseConsumed = false; this._actionConsumed = false; this._clickConsumed = false; }
 }
 
 // =============================================================================
@@ -442,33 +438,24 @@ class Particle {
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
     this.color = color; this.radius = radius; this.life = life; this.maxLife = life;
   }
-  update(dt) {
-    this.x += this.vx * dt * 0.001; this.y += this.vy * dt * 0.001;
-    this.vx *= 0.96; this.vy *= 0.96; this.life -= dt;
-  }
+  update(dt) { this.x += this.vx*dt*0.001; this.y += this.vy*dt*0.001; this.vx *= 0.96; this.vy *= 0.96; this.life -= dt; }
   draw(ctx) {
     const a = Math.max(0, this.life / this.maxLife);
-    ctx.save();
-    ctx.globalAlpha = a; ctx.fillStyle = this.color;
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = this.color;
     ctx.shadowColor = this.color; ctx.shadowBlur = 4;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * a, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * a, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur = 0; ctx.restore();
   }
   get isDead() { return this.life <= 0; }
 }
-
 class ParticleSystem {
   constructor() { this.particles = []; }
   emit(x, y, color, count, o) {
     o = o || {};
-    const sMin = o.speedMin || 60, sMax = o.speedMax || 200;
-    const lMin = o.lifeMin  || 300, lMax = o.lifeMax  || 700;
-    const rMin = o.radiusMin|| 2,   rMax = o.radiusMax || 6;
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = sMin + Math.random() * (sMax - sMin);
-      this.particles.push(new Particle(x, y, Math.cos(a)*sp, Math.sin(a)*sp, color,
-        rMin + Math.random()*(rMax-rMin), lMin + Math.random()*(lMax-lMin)));
+    const sMin=o.speedMin||60, sMax=o.speedMax||200, lMin=o.lifeMin||300, lMax=o.lifeMax||700, rMin=o.radiusMin||2, rMax=o.radiusMax||6;
+    for (let i=0; i<count; i++) {
+      const a=Math.random()*Math.PI*2, sp=sMin+Math.random()*(sMax-sMin);
+      this.particles.push(new Particle(x, y, Math.cos(a)*sp, Math.sin(a)*sp, color, rMin+Math.random()*(rMax-rMin), lMin+Math.random()*(lMax-lMin)));
     }
   }
   update(dt) { for (const p of this.particles) p.update(dt); this.particles = this.particles.filter(p => !p.isDead); }
@@ -479,11 +466,8 @@ class ParticleSystem {
 // Entity (base)
 // =============================================================================
 class Entity {
-  constructor(x, y, radius) {
-    this.x = x; this.y = y; this.radius = radius;
-    this.vx = 0; this.vy = 0; this.dead = false;
-  }
-  collidesWith(o) { return Math.hypot(this.x - o.x, this.y - o.y) < this.radius + o.radius; }
+  constructor(x, y, radius) { this.x=x; this.y=y; this.radius=radius; this.vx=0; this.vy=0; this.dead=false; }
+  collidesWith(o) { return Math.hypot(this.x-o.x, this.y-o.y) < this.radius+o.radius; }
   update() {} draw() {}
 }
 
@@ -493,27 +477,24 @@ class Entity {
 class Bullet extends Entity {
   constructor(x, y, angle) {
     super(x, y, CONFIG.BULLET_RADIUS);
-    this.vx = Math.cos(angle) * CONFIG.BULLET_SPEED;
-    this.vy = Math.sin(angle) * CONFIG.BULLET_SPEED;
+    this.vx = Math.cos(angle)*CONFIG.BULLET_SPEED; this.vy = Math.sin(angle)*CONFIG.BULLET_SPEED;
     this.trail = [];
   }
   update(dt) {
-    this.trail.push({ x: this.x, y: this.y });
+    this.trail.push({x:this.x, y:this.y});
     if (this.trail.length > 5) this.trail.shift();
-    this.x += this.vx * dt * 0.001; this.y += this.vy * dt * 0.001;
-    if (this.x < -20 || this.x > CONFIG.WIDTH+20 || this.y < -20 || this.y > CONFIG.HEIGHT+20) this.dead = true;
+    this.x += this.vx*dt*0.001; this.y += this.vy*dt*0.001;
+    if (this.x<-20||this.x>CONFIG.WIDTH+20||this.y<-20||this.y>CONFIG.HEIGHT+20) this.dead=true;
   }
   draw(ctx) {
     ctx.save();
-    for (let i = 0; i < this.trail.length; i++) {
-      ctx.globalAlpha = (i / this.trail.length) * 0.4;
-      ctx.fillStyle   = CONFIG.COLORS.bullet;
+    for (let i=0; i<this.trail.length; i++) {
+      ctx.globalAlpha=(i/this.trail.length)*0.4; ctx.fillStyle=CONFIG.COLORS.bullet;
       ctx.beginPath(); ctx.arc(this.trail[i].x, this.trail[i].y, this.radius*(i/this.trail.length)*0.7, 0, Math.PI*2); ctx.fill();
     }
-    ctx.globalAlpha = 1; ctx.shadowColor = CONFIG.COLORS.bullet; ctx.shadowBlur = 8;
-    ctx.fillStyle = CONFIG.COLORS.bullet;
-    ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0; ctx.restore();
+    ctx.globalAlpha=1; ctx.shadowColor=CONFIG.COLORS.bullet; ctx.shadowBlur=8;
+    ctx.fillStyle=CONFIG.COLORS.bullet; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0; ctx.restore();
   }
 }
 
@@ -523,38 +504,36 @@ class Bullet extends Entity {
 class Player extends Entity {
   constructor(x, y) {
     super(x, y, CONFIG.PLAYER_RADIUS);
-    this.hp = CONFIG.PLAYER_MAX_HP;
-    this.shootTimer = 0; this.invincibleTimer = 0; this.squishTimer = 0;
-    this.time = 0; this.facing = 0; this.moving = false;
+    this.hp=CONFIG.PLAYER_MAX_HP; this.shootTimer=0; this.invincibleTimer=0;
+    this.squishTimer=0; this.time=0; this.facing=0; this.moving=false;
   }
   update(dt, input) {
-    this.time += dt * 0.001;
-    this.shootTimer      = Math.max(0, this.shootTimer      - dt);
-    this.invincibleTimer = Math.max(0, this.invincibleTimer - dt);
-    this.squishTimer     = Math.max(0, this.squishTimer     - dt);
-    const mv = input.getMoveVector();
-    this.vx = mv.x * CONFIG.PLAYER_SPEED; this.vy = mv.y * CONFIG.PLAYER_SPEED;
-    this.moving = mv.x !== 0 || mv.y !== 0;
-    this.x = Math.max(this.radius, Math.min(CONFIG.WIDTH  - this.radius, this.x + this.vx * dt * 0.001));
-    this.y = Math.max(this.radius, Math.min(CONFIG.HEIGHT - this.radius, this.y + this.vy * dt * 0.001));
-    this.facing = input.getAimAngle(this.x, this.y);
+    this.time+=dt*0.001;
+    this.shootTimer=Math.max(0,this.shootTimer-dt);
+    this.invincibleTimer=Math.max(0,this.invincibleTimer-dt);
+    this.squishTimer=Math.max(0,this.squishTimer-dt);
+    const mv=input.getMoveVector();
+    this.vx=mv.x*CONFIG.PLAYER_SPEED; this.vy=mv.y*CONFIG.PLAYER_SPEED;
+    this.moving=mv.x!==0||mv.y!==0;
+    this.x=Math.max(this.radius, Math.min(CONFIG.WIDTH -this.radius, this.x+this.vx*dt*0.001));
+    this.y=Math.max(this.radius, Math.min(CONFIG.HEIGHT-this.radius, this.y+this.vy*dt*0.001));
+    this.facing=input.getAimAngle(this.x, this.y);
   }
   tryShoot(audio) {
-    if (this.shootTimer > 0) return null;
-    this.shootTimer = CONFIG.SHOOT_COOLDOWN; this.squishTimer = 100;
-    audio.playShoot();
-    return new Bullet(this.x, this.y, this.facing);
+    if (this.shootTimer>0) return null;
+    this.shootTimer=CONFIG.SHOOT_COOLDOWN; this.squishTimer=100;
+    audio.playShoot(); return new Bullet(this.x, this.y, this.facing);
   }
   takeDamage(audio) {
-    if (this.invincibleTimer > 0) return;
-    this.hp--; this.invincibleTimer = CONFIG.PLAYER_INVINCIBLE_MS; audio.playHurt();
+    if (this.invincibleTimer>0) return;
+    this.hp--; this.invincibleTimer=CONFIG.PLAYER_INVINCIBLE_MS; audio.playHurt();
   }
   draw(ctx) {
-    if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer / 100) % 2 === 0) return;
+    if (this.invincibleTimer>0 && Math.floor(this.invincibleTimer/100)%2===0) return;
     ctx.save(); ctx.translate(this.x, this.y);
-    ctx.translate(0, this.moving ? Math.sin(this.time * 8) * 3 : 0);
-    ctx.rotate(Math.sin(this.time * 3) * 0.15);
-    if (this.squishTimer > 0) ctx.scale(1.2, 0.82);
+    ctx.translate(0, this.moving ? Math.sin(this.time*8)*3 : 0);
+    ctx.rotate(Math.sin(this.time*3)*0.15);
+    if (this.squishTimer>0) ctx.scale(1.2, 0.82);
     this._drawBody(ctx); this._drawHead(ctx); this._drawBill(ctx); this._drawEye(ctx);
     ctx.restore();
   }
@@ -587,28 +566,23 @@ class Player extends Entity {
 class Spider extends Entity {
   constructor(x, y) {
     super(x, y, 14);
-    this.hp = 2; this.speed = 110 + Math.random() * 40;
-    this.legPhase = Math.random() * Math.PI * 2; this.color = CONFIG.COLORS.spider;
+    this.hp=2; this.speed=110+Math.random()*40;
+    this.legPhase=Math.random()*Math.PI*2; this.color=CONFIG.COLORS.spider;
   }
   update(dt, player) {
-    const dx=player.x-this.x, dy=player.y-this.y, d=Math.hypot(dx,dy)||1;
+    const dx=player.x-this.x,dy=player.y-this.y,d=Math.hypot(dx,dy)||1;
     this.vx=(dx/d)*this.speed; this.vy=(dy/d)*this.speed;
-    this.x+=this.vx*dt*0.001; this.y+=this.vy*dt*0.001;
-    this.legPhase+=dt*0.008;
+    this.x+=this.vx*dt*0.001; this.y+=this.vy*dt*0.001; this.legPhase+=dt*0.008;
     if (this.x<-100||this.x>CONFIG.WIDTH+100||this.y<-100||this.y>CONFIG.HEIGHT+100) this.dead=true;
   }
   draw(ctx) {
-    ctx.save(); ctx.translate(this.x,this.y);
-    const fa=Math.atan2(this.vy,this.vx);
+    ctx.save(); ctx.translate(this.x, this.y);
+    const fa=Math.atan2(this.vy, this.vx);
     ctx.strokeStyle=this.color; ctx.lineWidth=1.5;
-    for (const side of [-1,1]) {
-      for (let i=0;i<4;i++) {
-        const a=fa+side*(Math.PI*0.55+[-0.9,-0.45,0.45,0.9][i]);
-        const len=13+Math.sin(this.legPhase+i*0.7)*3;
-        ctx.beginPath(); ctx.moveTo(0,0);
-        ctx.quadraticCurveTo(Math.cos(a)*len*0.55,Math.sin(a)*len*0.55,
-          Math.cos(a+side*0.25)*len,Math.sin(a+side*0.25)*len); ctx.stroke();
-      }
+    for (const side of [-1,1]) for (let i=0;i<4;i++) {
+      const a=fa+side*(Math.PI*0.55+[-0.9,-0.45,0.45,0.9][i]), len=13+Math.sin(this.legPhase+i*0.7)*3;
+      ctx.beginPath(); ctx.moveTo(0,0);
+      ctx.quadraticCurveTo(Math.cos(a)*len*0.55,Math.sin(a)*len*0.55,Math.cos(a+side*0.25)*len,Math.sin(a+side*0.25)*len); ctx.stroke();
     }
     ctx.shadowColor=this.color; ctx.shadowBlur=12; ctx.fillStyle=this.color;
     ctx.beginPath(); ctx.ellipse(0,0,11,9,0,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
@@ -634,19 +608,18 @@ class Snake extends Entity {
     this.spineX+=Math.cos(this.baseAngle)*this.speed*s;
     this.spineY+=Math.sin(this.baseAngle)*this.speed*s;
     const perp=this.baseAngle+Math.PI/2;
-    const offset=Math.sin(this.sinePhase)*28;
-    this.x=this.spineX+Math.cos(perp)*offset;
-    this.y=this.spineY+Math.sin(perp)*offset;
-    const dx=player.x-this.x, dy=player.y-this.y, d=Math.hypot(dx,dy)||1;
+    this.x=this.spineX+Math.cos(perp)*Math.sin(this.sinePhase)*28;
+    this.y=this.spineY+Math.sin(perp)*Math.sin(this.sinePhase)*28;
+    const dx=player.x-this.x,dy=player.y-this.y,d=Math.hypot(dx,dy)||1;
     this.baseAngle+=Math.atan2(dy/d,dx/d)*0.025;
     if (this.x<-50||this.x>CONFIG.WIDTH+50||this.y<-50||this.y>CONFIG.HEIGHT+50) this.dead=true;
   }
   draw(ctx) {
-    ctx.save(); ctx.translate(this.x,this.y);
+    ctx.save(); ctx.translate(this.x, this.y);
     ctx.shadowColor=this.color; ctx.shadowBlur=14;
     const perp=this.baseAngle+Math.PI/2;
     const sc=['#1a5c0a','#237512','#2d9916','#35bb1b',this.color];
-    for (let i=4;i>=0;i--){
+    for (let i=4;i>=0;i--) {
       const so=Math.sin(this.sinePhase-i*0.55)*28;
       ctx.fillStyle=sc[i];
       ctx.beginPath();
@@ -656,12 +629,9 @@ class Snake extends Entity {
     }
     ctx.shadowBlur=0; ctx.strokeStyle='#FF1111'; ctx.lineWidth=1.2;
     const ta=this.baseAngle,tl=11;
-    ctx.beginPath();
-    ctx.moveTo(0,0); ctx.lineTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7);
-    ctx.moveTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7);
-    ctx.lineTo(Math.cos(ta-0.3)*tl,Math.sin(ta-0.3)*tl);
-    ctx.moveTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7);
-    ctx.lineTo(Math.cos(ta+0.3)*tl,Math.sin(ta+0.3)*tl);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7);
+    ctx.moveTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7); ctx.lineTo(Math.cos(ta-0.3)*tl,Math.sin(ta-0.3)*tl);
+    ctx.moveTo(Math.cos(ta)*tl*0.7,Math.sin(ta)*tl*0.7); ctx.lineTo(Math.cos(ta+0.3)*tl,Math.sin(ta+0.3)*tl);
     ctx.stroke(); ctx.restore();
   }
 }
@@ -672,8 +642,7 @@ class Snake extends Entity {
 class Octopus extends Entity {
   constructor(x, y) {
     super(x, y, 16);
-    this.hp=4;
-    this.orbitAngle=Math.atan2(y-CONFIG.HEIGHT/2,x-CONFIG.WIDTH/2);
+    this.hp=4; this.orbitAngle=Math.atan2(y-CONFIG.HEIGHT/2,x-CONFIG.WIDTH/2);
     this.orbitRadius=Math.min(CONFIG.WIDTH,CONFIG.HEIGHT)*0.42;
     this.orbitSpeed=0.55+Math.random()*0.25;
     this.chargeTimer=2000+Math.random()*1200;
@@ -686,17 +655,14 @@ class Octopus extends Entity {
       this.x+=this.chargeVx*dt*0.001; this.y+=this.chargeVy*dt*0.001;
       this.chargeVx+=(player.x-this.x)*0.05; this.chargeVy+=(player.y-this.y)*0.05;
       this.chargeDuration-=dt;
-      if (this.chargeDuration<=0){
-        this.charging=false; this.chargeTimer=2000+Math.random()*1200;
-        this.orbitAngle=Math.atan2(this.y-CONFIG.HEIGHT/2,this.x-CONFIG.WIDTH/2);
-      }
+      if (this.chargeDuration<=0) { this.charging=false; this.chargeTimer=2000+Math.random()*1200; this.orbitAngle=Math.atan2(this.y-CONFIG.HEIGHT/2,this.x-CONFIG.WIDTH/2); }
     } else {
       this.orbitRadius=Math.min(CONFIG.WIDTH,CONFIG.HEIGHT)*0.42;
       this.orbitAngle+=this.orbitSpeed*dt*0.001;
       this.x=CONFIG.WIDTH/2+Math.cos(this.orbitAngle)*this.orbitRadius;
       this.y=CONFIG.HEIGHT/2+Math.sin(this.orbitAngle)*this.orbitRadius;
       this.chargeTimer-=dt;
-      if (this.chargeTimer<=0){
+      if (this.chargeTimer<=0) {
         this.charging=true;
         const dx=player.x-this.x,dy=player.y-this.y,d=Math.hypot(dx,dy)||1;
         this.chargeVx=(dx/d)*340; this.chargeVy=(dy/d)*340; this.chargeDuration=900;
@@ -706,16 +672,15 @@ class Octopus extends Entity {
   draw(ctx) {
     ctx.save(); ctx.translate(this.x,this.y);
     ctx.shadowColor=this.color; ctx.shadowBlur=18;
-    for (let i=0;i<8;i++){
-      const a=(i/8)*Math.PI*2, w=Math.sin(this.tentaclePhase+i*0.78)*9;
+    for (let i=0;i<8;i++) {
+      const a=(i/8)*Math.PI*2,w=Math.sin(this.tentaclePhase+i*0.78)*9;
       ctx.strokeStyle=this.color; ctx.lineWidth=3.5-i*0.15;
       ctx.beginPath(); ctx.moveTo(0,0);
-      ctx.quadraticCurveTo(Math.cos(a+0.4)*20+w,Math.sin(a+0.4)*20,Math.cos(a)*30,Math.sin(a)*30);
-      ctx.stroke();
+      ctx.quadraticCurveTo(Math.cos(a+0.4)*20+w,Math.sin(a+0.4)*20,Math.cos(a)*30,Math.sin(a)*30); ctx.stroke();
     }
     ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
     if (this.charging){ctx.shadowBlur=0;ctx.strokeStyle='#FF88FF';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.stroke();}
-    ctx.shadowBlur=0; ctx.fillStyle='#E8D5F5'; ctx.font='11px Courier New';
+    ctx.shadowBlur=0; ctx.fillStyle='#E8D5F5'; ctx.font=`11px ${MONO}`;
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('∞',0,0);
     ctx.restore();
   }
@@ -743,11 +708,11 @@ class Ghost extends Entity {
     ctx.globalAlpha=0.55; ctx.shadowColor=this.color; ctx.shadowBlur=12+pulse*14;
     ctx.translate(0,Math.sin(this.floatPhase)*5);
     ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(0,-5,14,Math.PI,0);
-    for (let i=0;i<=6;i++) ctx.lineTo(-14+(i/6)*28,9+Math.sin(i*Math.PI+this.floatPhase*2.5)*4);
+    for (let i=0;i<=6;i++) ctx.lineTo(-14+(i/6)*28, 9+Math.sin(i*Math.PI+this.floatPhase*2.5)*4);
     ctx.closePath(); ctx.fill();
-    ctx.shadowBlur=0; ctx.globalAlpha=0.8; ctx.fillStyle='#0d1117';
+    ctx.shadowBlur=0; ctx.globalAlpha=0.8; ctx.fillStyle='#0a0e17';
     for (const ex of[-5,5]){ctx.beginPath();ctx.ellipse(ex,-6,3,4,0,0,Math.PI*2);ctx.fill();}
-    ctx.globalAlpha=0.35; ctx.fillStyle=this.color; ctx.font='5px Courier New';
+    ctx.globalAlpha=0.35; ctx.fillStyle=this.color; ctx.font=`5px ${MONO}`;
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('NULL',0,10);
     ctx.restore();
   }
@@ -757,43 +722,29 @@ class Ghost extends Entity {
 // WaveManager
 // =============================================================================
 class WaveManager {
-  constructor() {
-    this.wave=0; this.state='gap'; this.gapTimer=1500;
-    this.spawnQueue=[]; this.enemiesThisWave=0; this.waveCleared=false;
-  }
+  constructor() { this.wave=0; this.state='gap'; this.gapTimer=1500; this.spawnQueue=[]; this.enemiesThisWave=0; this.waveCleared=false; }
   update(dt, enemies, audio) {
     this.waveCleared=false;
-    if (this.state==='gap'){
-      this.gapTimer-=dt;
-      if (this.gapTimer<=0){ this.wave++; this._buildWave(); this.state='active'; }
-      return;
-    }
-    if (this.spawnQueue.length>0){
+    if (this.state==='gap') { this.gapTimer-=dt; if (this.gapTimer<=0){this.wave++;this._buildWave();this.state='active';} return; }
+    if (this.spawnQueue.length>0) {
       this.spawnQueue[0].timer-=dt;
-      if (this.spawnQueue[0].timer<=0) enemies.push(this._spawnEnemy(...Object.values(this.spawnQueue.shift())));
+      if (this.spawnQueue[0].timer<=0) { const e=this.spawnQueue.shift(); enemies.push(this._spawnEnemy(e.type,e.player)); }
     }
-    if (this.spawnQueue.length===0&&enemies.length===0){
-      this.state='gap'; this.gapTimer=CONFIG.WAVE_GAP_MS;
-      this.waveCleared=true; audio.playWaveClear();
-    }
+    if (this.spawnQueue.length===0&&enemies.length===0) { this.state='gap'; this.gapTimer=CONFIG.WAVE_GAP_MS; this.waveCleared=true; audio.playWaveClear(); }
   }
   _buildWave() {
     const w=this.wave, types=[];
-    const nSpiders = Math.min(3+w, 10);
-    const nSnakes  = Math.max(0, Math.floor((w+1)/2));
-    const nOctopi  = Math.max(0, Math.floor((w-2)/2));
-    const nGhosts  = Math.max(0, Math.floor((w-3)/3));
-    for (let i=0;i<nSpiders;i++) types.push('Spider');
-    for (let i=0;i<nSnakes;i++)  types.push('Snake');
-    for (let i=0;i<nOctopi;i++)  types.push('Octopus');
-    for (let i=0;i<nGhosts;i++)  types.push('Ghost');
+    const nSp=Math.min(3+w,10), nSn=Math.max(0,Math.floor((w+1)/2)), nOc=Math.max(0,Math.floor((w-2)/2)), nGh=Math.max(0,Math.floor((w-3)/3));
+    for (let i=0;i<nSp;i++) types.push('Spider');
+    for (let i=0;i<nSn;i++) types.push('Snake');
+    for (let i=0;i<nOc;i++) types.push('Octopus');
+    for (let i=0;i<nGh;i++) types.push('Ghost');
     for (let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]];}
     this.spawnQueue=types.map((type,i)=>({type,timer:i*250,player:null}));
     this.enemiesThisWave=types.length;
   }
-  _spawnEnemy(type, timer, playerRef) {
-    const pos=this._edgePosition();
-    const p=playerRef||{x:CONFIG.WIDTH/2,y:CONFIG.HEIGHT/2};
+  _spawnEnemy(type, playerRef) {
+    const pos=this._edgePosition(), p=playerRef||{x:CONFIG.WIDTH/2,y:CONFIG.HEIGHT/2};
     if (type==='Spider')  return new Spider(pos.x,pos.y);
     if (type==='Snake')   return new Snake(pos.x,pos.y,p);
     if (type==='Octopus') return new Octopus(pos.x,pos.y);
@@ -818,40 +769,26 @@ class Game {
     this.ctx    = this.canvas.getContext('2d');
     this.nameEl = document.getElementById('nameInput');
 
-    // Language
     this.lang = this._detectLang();
     window.__bsLang = this.lang;
 
-    // State
     this.state  = 'LANG_SELECT';
-    this.lastTs = 0;
-    this.shakeX = 0; this.shakeY = 0;
+    this.lastTs = 0; this.shakeX=0; this.shakeY=0;
+    this._gameOverTs = 0;
 
-    // Game objects
-    this.player  = null;
-    this.enemies = []; this.bullets = [];
-    this.ps      = new ParticleSystem();
-    this.waves   = new WaveManager();
-    this.audio   = new AudioManager();
-    this.input   = new InputManager(this.canvas);
+    this.player=null; this.enemies=[]; this.bullets=[];
+    this.ps=new ParticleSystem(); this.waves=new WaveManager();
+    this.audio=new AudioManager(); this.input=new InputManager(this.canvas);
 
-    // Score / player
-    this.score      = 0;
-    this.combo      = 1; this.comboTimer = 0;
-    this.highScore  = parseInt(localStorage.getItem(CONFIG.HS_KEY)) || 0;
-    this.playerName = '';
+    this.score=0; this.combo=1; this.comboTimer=0;
+    this.highScore=parseInt(localStorage.getItem(CONFIG.HS_KEY))||0;
+    this.playerName='';
 
-    // Leaderboard
-    this.leaderboard    = this._loadLocalScores();
-    this.scoreSubmitted = false;
-    this.submittingScore = false;
+    this.leaderboard=this._loadLocalScores();
+    this.scoreSubmitted=false; this.submittingScore=false;
 
-    // Lang select cards (hit test)
-    this._langCards = [];
-
-    // Name input wiring
+    this._langCards=[];
     this._wireNameInput();
-
     this._initCanvas();
     window.addEventListener('resize', () => this._onResize());
     this._startLoop();
@@ -860,601 +797,382 @@ class Game {
   // ---- Language ----
 
   _detectLang() {
-    const saved = localStorage.getItem(CONFIG.LANG_KEY);
-    if (saved && STRINGS[saved]) return saved;
-    const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
-    return STRINGS[nav] ? nav : 'en';
+    const saved=localStorage.getItem(CONFIG.LANG_KEY);
+    if (saved&&STRINGS[saved]) return saved;
+    const nav=(navigator.language||'en').slice(0,2).toLowerCase();
+    return STRINGS[nav]?nav:'en';
   }
 
-  _setLang(code) {
-    this.lang = code;
-    window.__bsLang = code;
-    localStorage.setItem(CONFIG.LANG_KEY, code);
-  }
+  _setLang(code) { this.lang=code; window.__bsLang=code; localStorage.setItem(CONFIG.LANG_KEY,code); }
 
-  // ---- Name input wiring ----
+  // ---- Name input ----
 
   _wireNameInput() {
     if (!this.nameEl) return;
     this.nameEl.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const v = this.nameEl.value.trim();
-        if (v) { this.playerName = v; this._hideNameInput(); this.toMenu(); }
-      }
-      if (e.key === 'Escape') { this._hideNameInput(); this.toLangSelect(); }
+      if (e.key==='Enter') { e.preventDefault(); const v=this.nameEl.value.trim(); if(v){this.playerName=v;this._hideNameInput();this.toMenu();} }
+      if (e.key==='Escape') { this._hideNameInput(); this.toLangSelect(); }
     });
   }
-
   _showNameInput() {
     if (!this.nameEl) return;
-    this.nameEl.value = this.playerName;
-    this.nameEl.placeholder = T('name_ph');
-    this.nameEl.classList.add('visible');
-    setTimeout(() => this.nameEl.focus(), 50);
+    this.nameEl.value=this.playerName; this.nameEl.placeholder=T('name_hint');
+    this.nameEl.classList.add('visible'); setTimeout(()=>this.nameEl.focus(),50);
   }
-
-  _hideNameInput() {
-    if (!this.nameEl) return;
-    this.nameEl.classList.remove('visible');
-    this.nameEl.blur();
-  }
+  _hideNameInput() { if (!this.nameEl) return; this.nameEl.classList.remove('visible'); this.nameEl.blur(); }
 
   // ---- Canvas ----
 
   _initCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width  = CONFIG.WIDTH  * dpr;
-    this.canvas.height = CONFIG.HEIGHT * dpr;
-    this.canvas.style.width  = CONFIG.WIDTH  + 'px';
-    this.canvas.style.height = CONFIG.HEIGHT + 'px';
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dpr=window.devicePixelRatio||1;
+    this.canvas.width=CONFIG.WIDTH*dpr; this.canvas.height=CONFIG.HEIGHT*dpr;
+    this.canvas.style.width=CONFIG.WIDTH+'px'; this.canvas.style.height=CONFIG.HEIGHT+'px';
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
   }
-
   _onResize() {
-    CONFIG.WIDTH  = window.innerWidth;
-    CONFIG.HEIGHT = window.innerHeight;
+    CONFIG.WIDTH=window.innerWidth; CONFIG.HEIGHT=window.innerHeight;
     this._initCanvas();
     if (this.player) {
-      this.player.x = Math.max(this.player.radius, Math.min(CONFIG.WIDTH  - this.player.radius, this.player.x));
-      this.player.y = Math.max(this.player.radius, Math.min(CONFIG.HEIGHT - this.player.radius, this.player.y));
+      this.player.x=Math.max(this.player.radius,Math.min(CONFIG.WIDTH -this.player.radius,this.player.x));
+      this.player.y=Math.max(this.player.radius,Math.min(CONFIG.HEIGHT-this.player.radius,this.player.y));
     }
   }
 
   _startLoop() {
-    const loop = ts => {
-      let dt = ts - this.lastTs; this.lastTs = ts;
-      if (dt > CONFIG.MAX_DT) dt = CONFIG.MAX_DT;
-      if (dt < 0) dt = 0;
-      this._loop(dt, ts);
-      requestAnimationFrame(loop);
+    const loop=ts=>{
+      let dt=ts-this.lastTs; this.lastTs=ts;
+      if (dt>CONFIG.MAX_DT) dt=CONFIG.MAX_DT; if (dt<0) dt=0;
+      this._loop(dt,ts); requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
   }
-
-  _loop(dt, ts) {
-    if (this.state === 'PLAYING') this._update(dt, ts);
-    this._draw(ts);
-  }
+  _loop(dt, ts) { if (this.state==='PLAYING') this._update(dt,ts); this._draw(ts); }
 
   // ---- State Transitions ----
 
-  toLangSelect() {
-    this._hideNameInput();
-    this.state = 'LANG_SELECT';
-  }
-
-  toNameInput() {
-    this._showNameInput();
-    this.state = 'NAME_INPUT';
-  }
-
-  toMenu() {
-    this._hideNameInput();
-    this.state = 'MENU';
-  }
+  toLangSelect() { this._hideNameInput(); this.state='LANG_SELECT'; }
+  toNameInput()  { this._showNameInput(); this.state='NAME_INPUT'; }
+  toMenu()       { this._hideNameInput(); this.state='MENU'; }
 
   toPlaying() {
-    this.score = 0; this.combo = 1; this.comboTimer = 0;
-    this.enemies = []; this.bullets = [];
-    this.ps    = new ParticleSystem();
-    this.waves = new WaveManager();
-    this.player = new Player(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2);
-    this.shakeX = 0; this.shakeY = 0;
-    this.scoreSubmitted = false;
-    this.state = 'PLAYING';
+    this.score=0; this.combo=1; this.comboTimer=0;
+    this.enemies=[]; this.bullets=[]; this.ps=new ParticleSystem(); this.waves=new WaveManager();
+    this.player=new Player(CONFIG.WIDTH/2,CONFIG.HEIGHT/2);
+    this.shakeX=0; this.shakeY=0; this.scoreSubmitted=false;
+    this.state='PLAYING';
   }
 
-  toPaused()  { this.state = 'PAUSED'; }
-  toResumed() { this.state = 'PLAYING'; }
+  toPaused()  { this.state='PAUSED'; }
+  toResumed() { this.state='PLAYING'; }
 
   toGameOver() {
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      localStorage.setItem(CONFIG.HS_KEY, this.highScore);
-    }
+    if (this.score>this.highScore) { this.highScore=this.score; localStorage.setItem(CONFIG.HS_KEY,this.highScore); }
     this._saveLocalScore();
     this._submitScore();
-    this.state = 'GAME_OVER';
+    this.state='GAME_OVER';
+    this._gameOverTs=performance.now();
+    // Flush residual input that triggered the death so we don't auto-restart
+    this.input.clearAll();
   }
 
   // ---- Leaderboard ----
 
   _loadLocalScores() {
-    try {
-      const raw = localStorage.getItem(CONFIG.SCORES_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch(e) { return []; }
+    try { const r=localStorage.getItem(CONFIG.SCORES_KEY); return r?JSON.parse(r):[]; } catch(e) { return []; }
   }
-
   _saveLocalScore() {
-    if (!this.playerName || this.score <= 0) return;
-    const entry = { name: this.playerName, score: this.score, wave: this.waves.wave };
-    let scores = this._loadLocalScores();
-    scores.push(entry);
-    scores.sort((a, b) => b.score - a.score);
-    scores = scores.slice(0, 15);
-    try { localStorage.setItem(CONFIG.SCORES_KEY, JSON.stringify(scores)); } catch(e) {}
-    this.leaderboard = scores;
+    if (!this.playerName||this.score<=0) return;
+    let scores=this._loadLocalScores();
+    scores.push({name:this.playerName,score:this.score,wave:this.waves.wave});
+    scores.sort((a,b)=>b.score-a.score); scores=scores.slice(0,20);
+    try { localStorage.setItem(CONFIG.SCORES_KEY,JSON.stringify(scores)); } catch(e){}
+    this.leaderboard=scores;
   }
-
   async _submitScore() {
-    if (!CONFIG.LEADERBOARD_URL || this.scoreSubmitted || !this.playerName || this.score <= 0) return;
-    this.submittingScore = true;
+    if (!CONFIG.LEADERBOARD_URL||this.scoreSubmitted||!this.playerName||this.score<=0) return;
+    this.submittingScore=true;
     try {
-      await fetch(CONFIG.LEADERBOARD_URL + '.json', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: this.playerName, score: this.score,
-          wave: this.waves.wave, lang: this.lang,
-          ts: new Date().toISOString(),
-        }),
-      });
-      this.scoreSubmitted = true;
-    } catch(e) { /* offline — local scores used */ }
-    this.submittingScore = false;
-    await this._fetchLeaderboard();
+      await fetch(CONFIG.LEADERBOARD_URL+'.json',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:this.playerName,score:this.score,wave:this.waves.wave,lang:this.lang,ts:new Date().toISOString()})});
+      this.scoreSubmitted=true;
+    } catch(e){}
+    this.submittingScore=false; await this._fetchLeaderboard();
   }
-
   async _fetchLeaderboard() {
     if (!CONFIG.LEADERBOARD_URL) return;
     try {
-      const r = await fetch(CONFIG.LEADERBOARD_URL + '.json?orderBy="score"&limitToLast=15');
-      const data = await r.json();
-      if (data && typeof data === 'object') {
-        this.leaderboard = Object.values(data)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10);
-      }
-    } catch(e) { /* stay with local */ }
+      const r=await fetch(CONFIG.LEADERBOARD_URL+'.json?orderBy="score"&limitToLast=20');
+      const data=await r.json();
+      if (data&&typeof data==='object') this.leaderboard=Object.values(data).sort((a,b)=>b.score-a.score).slice(0,20);
+    } catch(e){}
   }
 
   // ---- Update ----
 
-  _update(dt, ts) {
+  _update(dt) {
     if (this.input.consumePause()) { this.toPaused(); return; }
     this.waves.injectPlayer(this.player);
-    if (this.input.isShootingHeld()) {
-      const b = this.player.tryShoot(this.audio);
-      if (b) this.bullets.push(b);
-    }
-    this.player.update(dt, this.input);
+    if (this.input.isShootingHeld()) { const b=this.player.tryShoot(this.audio); if(b)this.bullets.push(b); }
+    this.player.update(dt,this.input);
     for (const b of this.bullets) b.update(dt);
-    for (const e of this.enemies) e.update(dt, this.player);
-    this.waves.update(dt, this.enemies, this.audio);
+    for (const e of this.enemies) e.update(dt,this.player);
+    this.waves.update(dt,this.enemies,this.audio);
     this.ps.update(dt);
-    if (this.combo > 1) { this.comboTimer -= dt; if (this.comboTimer <= 0) { this.combo = 1; this.comboTimer = 0; } }
-    this.shakeX *= CONFIG.SHAKE_DECAY; this.shakeY *= CONFIG.SHAKE_DECAY;
-    if (Math.abs(this.shakeX) < 0.1) this.shakeX = 0;
-    if (Math.abs(this.shakeY) < 0.1) this.shakeY = 0;
+    if (this.combo>1){this.comboTimer-=dt;if(this.comboTimer<=0){this.combo=1;this.comboTimer=0;}}
+    this.shakeX*=CONFIG.SHAKE_DECAY; this.shakeY*=CONFIG.SHAKE_DECAY;
+    if (Math.abs(this.shakeX)<0.1) this.shakeX=0; if (Math.abs(this.shakeY)<0.1) this.shakeY=0;
     this._checkCollisions();
   }
-
   _checkCollisions() {
     for (const b of this.bullets) {
       if (b.dead) continue;
       for (const e of this.enemies) {
         if (e.dead) continue;
-        if (b.collidesWith(e)) {
-          b.dead = true; e.hp--;
-          if (e.hp <= 0) { e.dead = true; this._onKill(e); }
-          break;
-        }
+        if (b.collidesWith(e)) { b.dead=true; e.hp--; if(e.hp<=0){e.dead=true;this._onKill(e);} break; }
       }
     }
-    if (this.player.invincibleTimer <= 0) {
+    if (this.player.invincibleTimer<=0) {
       for (const e of this.enemies) {
         if (e.dead) continue;
         if (e.collidesWith(this.player)) {
-          this.player.takeDamage(this.audio);
-          this.combo = 1; this.comboTimer = 0; this._shake(9);
-          if (this.player.hp <= 0) { this.toGameOver(); return; }
-          break;
+          this.player.takeDamage(this.audio); this.combo=1; this.comboTimer=0; this._shake(9);
+          if (this.player.hp<=0){this.toGameOver();return;} break;
         }
       }
     }
-    this.bullets = this.bullets.filter(b => !b.dead);
-    this.enemies = this.enemies.filter(e => !e.dead);
+    this.bullets=this.bullets.filter(b=>!b.dead); this.enemies=this.enemies.filter(e=>!e.dead);
   }
-
   _onKill(enemy) {
-    this.combo = Math.min(this.combo + 1, 10);
-    this.comboTimer = CONFIG.COMBO_RESET_MS;
-    this.score += (CONFIG.BASE_SCORES[enemy.constructor.name] || 10) * this.combo;
-    this.ps.emit(enemy.x, enemy.y, enemy.color, 18, { speedMin:60, speedMax:200, lifeMin:300, lifeMax:700, radiusMin:2, radiusMax:6 });
+    this.combo=Math.min(this.combo+1,10); this.comboTimer=CONFIG.COMBO_RESET_MS;
+    this.score+=(CONFIG.BASE_SCORES[enemy.constructor.name]||10)*this.combo;
+    this.ps.emit(enemy.x,enemy.y,enemy.color,18,{speedMin:60,speedMax:200,lifeMin:300,lifeMax:700,radiusMin:2,radiusMax:6});
     this.audio.playPop(); this._shake(4);
   }
+  _shake(m) { this.shakeX=(Math.random()*2-1)*m; this.shakeY=(Math.random()*2-1)*m; }
+  _isTouchDevice() { return 'ontouchstart' in window||navigator.maxTouchPoints>0; }
 
-  _shake(m) {
-    this.shakeX = (Math.random()*2-1)*m;
-    this.shakeY = (Math.random()*2-1)*m;
+  // ---- Draw helpers ----
+
+  // Rounded rectangle path helper
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
   }
 
-  _isTouchDevice() { return 'ontouchstart' in window || navigator.maxTouchPoints > 0; }
+  // Glass panel (surface + hairline border)
+  _glassPanel(ctx, x, y, w, h, r) {
+    ctx.save();
+    this._roundRect(ctx,x,y,w,h,r||16);
+    ctx.fillStyle=CONFIG.COLORS.surface; ctx.fill();
+    ctx.strokeStyle=CONFIG.COLORS.border; ctx.lineWidth=1; ctx.stroke();
+    ctx.restore();
+  }
 
   // ---- Draw dispatcher ----
 
   _draw(ts) {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
-
-    if (this.state === 'LANG_SELECT') { this._drawLangSelect(ts); return; }
-    if (this.state === 'NAME_INPUT')  { this._drawNameInput(ts);  return; }
-    if (this.state === 'MENU')        { this._drawMenu(ts);       return; }
-    if (this.state === 'GAME_OVER')   { this._drawGameOver(ts);   return; }
+    const ctx=this.ctx;
+    ctx.clearRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+    if (this.state==='LANG_SELECT') { this._drawLangSelect(ts); return; }
+    if (this.state==='NAME_INPUT')  { this._drawNameInput(ts);  return; }
+    if (this.state==='MENU')        { this._drawMenu(ts);       return; }
+    if (this.state==='GAME_OVER')   { this._drawGameOver(ts);   return; }
 
     this._drawGame(ts);
 
-    if (this.state === 'PAUSED') {
+    if (this.state==='PAUSED') {
       ctx.save();
-      ctx.fillStyle = 'rgba(13,17,23,0.6)';
-      ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
-      ctx.fillStyle = CONFIG.COLORS.hud; ctx.font = 'bold 36px Courier New';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = CONFIG.COLORS.accent; ctx.shadowBlur = 20;
-      ctx.fillText(T('paused'), CONFIG.WIDTH/2, CONFIG.HEIGHT/2 - 20);
-      ctx.shadowBlur = 0; ctx.font = '14px Courier New'; ctx.fillStyle = CONFIG.COLORS.dim;
-      ctx.fillText(this._isTouchDevice() ? T('resume_t') : T('resume'), CONFIG.WIDTH/2, CONFIG.HEIGHT/2 + 20);
+      ctx.fillStyle=CONFIG.COLORS.overlay; ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+      // Glass pause card
+      const cw=Math.min(320,CONFIG.WIDTH*0.7), ch=120, cx=(CONFIG.WIDTH-cw)/2, cy=CONFIG.HEIGHT/2-ch/2;
+      this._glassPanel(ctx,cx,cy,cw,ch,20);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=CONFIG.COLORS.textPri; ctx.font=`bold 28px ${SYS}`;
+      ctx.fillText(T('paused'),CONFIG.WIDTH/2,cy+38);
+      ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`15px ${SYS}`;
+      ctx.fillText(this._isTouchDevice()?T('resume_t'):T('resume'),CONFIG.WIDTH/2,cy+72);
       ctx.restore();
       if (this.input.consumePause()) this.toResumed();
-      else if (this._isTouchDevice() && this.input.consumeClick()) this.toResumed();
+      else if (this._isTouchDevice()&&this.input.consumeClick()) this.toResumed();
     }
   }
 
-  // ---- LANG_SELECT screen ----
+  // ---- LANG_SELECT ----
 
   _drawLangSelect(ts) {
-    const ctx = this.ctx;
-    ctx.fillStyle = CONFIG.COLORS.bg;
-    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+    const ctx=this.ctx;
+    this._drawBg(ctx);
 
-    // Title
+    // Title block
+    const titleY=Math.round(CONFIG.HEIGHT*0.13);
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = CONFIG.COLORS.player; ctx.shadowColor = CONFIG.COLORS.player; ctx.shadowBlur = 30;
-    ctx.font = 'bold 48px Courier New';
-    ctx.fillText('BUG SQUASHER', CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT * 0.14));
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '14px Courier New';
-    ctx.fillText(T('lang_title'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT * 0.20));
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.player; ctx.shadowColor=CONFIG.COLORS.player; ctx.shadowBlur=20;
+    ctx.font=`bold 46px ${SYS}`; ctx.fillText('BUG SQUASHER',CONFIG.WIDTH/2,titleY); ctx.shadowBlur=0;
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`16px ${SYS}`;
+    ctx.fillText(T('lang_title'),CONFIG.WIDTH/2,titleY+30);
     ctx.restore();
 
-    // Language cards: 2x2 grid centred
-    const langs = [
-      { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
-      { code: 'en', flag: '🇬🇧', name: 'English' },
-      { code: 'fr', flag: '🇫🇷', name: 'Français' },
-      { code: 'es', flag: '🇪🇸', name: 'Español' },
-    ];
+    // Cards
+    const langs=[{code:'de',flag:'🇩🇪',name:'Deutsch'},{code:'en',flag:'🇬🇧',name:'English'},{code:'fr',flag:'🇫🇷',name:'Français'},{code:'es',flag:'🇪🇸',name:'Español'}];
+    const cardW=Math.min(220,CONFIG.WIDTH*0.38), cardH=84, gapX=Math.min(18,CONFIG.WIDTH*0.03), gapY=14;
+    const gridW=cardW*2+gapX, startX=CONFIG.WIDTH/2-gridW/2, startY=Math.round(CONFIG.HEIGHT*0.28);
+    this._langCards=[];
+    const mx=this.input.mouse.x, my=this.input.mouse.y;
 
-    const cardW = Math.min(240, CONFIG.WIDTH * 0.38);
-    const cardH = 70;
-    const gapX  = Math.min(20, CONFIG.WIDTH * 0.03);
-    const gapY  = 16;
-    const gridW = cardW * 2 + gapX;
-    const startX = CONFIG.WIDTH/2 - gridW/2;
-    const startY = Math.round(CONFIG.HEIGHT * 0.30);
-
-    this._langCards = [];
-    const mx = this.input.mouse.x, my = this.input.mouse.y;
-
-    langs.forEach((lang, i) => {
-      const col = i % 2, row = Math.floor(i / 2);
-      const x = startX + col * (cardW + gapX);
-      const y = startY + row * (cardH + gapY);
-      const isActive  = this.lang === lang.code;
-      const isHovered = mx >= x && mx <= x+cardW && my >= y && my <= y+cardH;
-      this._langCards.push({ code: lang.code, x, y, w: cardW, h: cardH });
-
+    langs.forEach((lang,i)=>{
+      const col=i%2, row=Math.floor(i/2);
+      const x=startX+col*(cardW+gapX), y=startY+row*(cardH+gapY);
+      const isActive=this.lang===lang.code, isHov=mx>=x&&mx<=x+cardW&&my>=y&&my<=y+cardH;
+      this._langCards.push({code:lang.code,x,y,w:cardW,h:cardH});
       ctx.save();
-      ctx.fillStyle = isActive ? CONFIG.COLORS.accent : (isHovered ? CONFIG.COLORS.cardHov : CONFIG.COLORS.card);
-      if (isActive) { ctx.shadowColor = CONFIG.COLORS.accent; ctx.shadowBlur = 18; }
-      // Rounded rect
-      const r = 8;
-      ctx.beginPath();
-      ctx.moveTo(x+r, y); ctx.lineTo(x+cardW-r, y);
-      ctx.arcTo(x+cardW, y, x+cardW, y+r, r);
-      ctx.lineTo(x+cardW, y+cardH-r);
-      ctx.arcTo(x+cardW, y+cardH, x+cardW-r, y+cardH, r);
-      ctx.lineTo(x+r, y+cardH);
-      ctx.arcTo(x, y+cardH, x, y+cardH-r, r);
-      ctx.lineTo(x, y+r);
-      ctx.arcTo(x, y, x+r, y, r);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = '28px serif';
-      ctx.fillText(lang.flag, x + cardW/2, y + cardH/2 - 8);
-      ctx.font = (isActive ? 'bold ' : '') + '14px Courier New';
-      ctx.fillStyle = isActive ? '#fff' : CONFIG.COLORS.hud;
-      ctx.fillText(lang.name, x + cardW/2, y + cardH/2 + 18);
+      if (isActive) {
+        ctx.fillStyle=CONFIG.COLORS.accent;
+        this._roundRect(ctx,x,y,cardW,cardH,16); ctx.fill();
+      } else {
+        this._glassPanel(ctx,x,y,cardW,cardH,16);
+        if (isHov) { this._roundRect(ctx,x,y,cardW,cardH,16); ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fill(); }
+      }
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='32px serif'; ctx.fillText(lang.flag,x+cardW/2,y+cardH/2-10);
+      ctx.font=(isActive?`bold 14px ${SYS}`:`14px ${SYS}`);
+      ctx.fillStyle=isActive?'#fff':CONFIG.COLORS.textPri;
+      ctx.fillText(lang.name,x+cardW/2,y+cardH/2+20);
       ctx.restore();
     });
 
     // Subtitle
+    const subY=startY+2*(cardH+gapY)+24;
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '11px Courier New';
-    ctx.fillText(T('lang_sub'), CONFIG.WIDTH/2, startY + 2*(cardH+gapY) + 28);
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`12px ${SYS}`;
+    ctx.fillText(T('lang_sub'),CONFIG.WIDTH/2,subY);
     ctx.restore();
 
     this._drawCRT();
 
-    // Hit test on click
     if (this.input.consumeClick()) {
       for (const card of this._langCards) {
-        if (mx >= card.x && mx <= card.x+card.w && my >= card.y && my <= card.y+card.h) {
-          this._setLang(card.code);
-          this.toNameInput();
-          return;
+        if (mx>=card.x&&mx<=card.x+card.w&&my>=card.y&&my<=card.y+card.h) {
+          this._setLang(card.code); this.toNameInput(); return;
         }
       }
     }
   }
 
-  // ---- NAME_INPUT screen ----
+  // ---- NAME_INPUT ----
 
   _drawNameInput(ts) {
-    const ctx = this.ctx;
-    ctx.fillStyle = CONFIG.COLORS.bg;
-    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+    const ctx=this.ctx;
+    this._drawBg(ctx);
 
+    const titleY=Math.round(CONFIG.HEIGHT*0.30);
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-
-    ctx.fillStyle = CONFIG.COLORS.player; ctx.shadowColor = CONFIG.COLORS.player; ctx.shadowBlur = 30;
-    ctx.font = 'bold 44px Courier New';
-    ctx.fillText(T('name_title'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT * 0.32));
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '14px Courier New';
-    ctx.fillText(T('name_sub'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT * 0.40));
-
-    // Input box placeholder drawn on canvas (actual input is DOM)
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '12px Courier New';
-    ctx.fillText(this._isTouchDevice() ? T('name_hint_t') : T('name_hint'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT * 0.68));
-
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.player; ctx.shadowColor=CONFIG.COLORS.player; ctx.shadowBlur=18;
+    ctx.font=`bold 40px ${SYS}`; ctx.fillText(T('name_title'),CONFIG.WIDTH/2,titleY); ctx.shadowBlur=0;
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`15px ${SYS}`;
+    ctx.fillText(T('name_sub'),CONFIG.WIDTH/2,titleY+28);
     ctx.restore();
 
-    // Confirm button (touch-friendly, also works on desktop)
-    const btnW = Math.min(200, CONFIG.WIDTH * 0.4);
-    const btnH = 46;
-    const btnX = CONFIG.WIDTH/2 - btnW/2;
-    const btnY = Math.round(CONFIG.HEIGHT * 0.72);
-    const mx   = this.input.mouse.x, my = this.input.mouse.y;
-    const hov  = mx >= btnX && mx <= btnX+btnW && my >= btnY && my <= btnY+btnH;
-
+    // Hint below DOM input (DOM input sits at top:52% via CSS)
+    const hintY=Math.round(CONFIG.HEIGHT*0.64);
     ctx.save();
-    ctx.fillStyle = hov ? CONFIG.COLORS.accent : '#1f2937';
-    ctx.shadowColor = CONFIG.COLORS.accent; ctx.shadowBlur = hov ? 14 : 0;
-    ctx.beginPath();
-    const br = 8;
-    ctx.moveTo(btnX+br,btnY); ctx.lineTo(btnX+btnW-br,btnY);
-    ctx.arcTo(btnX+btnW,btnY,btnX+btnW,btnY+br,br);
-    ctx.lineTo(btnX+btnW,btnY+btnH-br);
-    ctx.arcTo(btnX+btnW,btnY+btnH,btnX+btnW-br,btnY+btnH,br);
-    ctx.lineTo(btnX+br,btnY+btnH);
-    ctx.arcTo(btnX,btnY+btnH,btnX,btnY+btnH-br,br);
-    ctx.lineTo(btnX,btnY+br);
-    ctx.arcTo(btnX,btnY,btnX+br,btnY,br);
-    ctx.closePath(); ctx.fill();
-    ctx.shadowBlur=0;
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 14px Courier New';
-    ctx.fillText(T('name_confirm'), CONFIG.WIDTH/2, btnY + btnH/2);
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`13px ${SYS}`;
+    ctx.fillText(this._isTouchDevice()?T('name_hint_t'):T('name_hint'),CONFIG.WIDTH/2,hintY);
+    ctx.restore();
+
+    // Confirm button
+    const btnW=Math.min(200,CONFIG.WIDTH*0.42), btnH=50, btnX=CONFIG.WIDTH/2-btnW/2, btnY=Math.round(CONFIG.HEIGHT*0.69);
+    const mx=this.input.mouse.x, my=this.input.mouse.y;
+    const hov=mx>=btnX&&mx<=btnX+btnW&&my>=btnY&&my<=btnY+btnH;
+    ctx.save();
+    this._roundRect(ctx,btnX,btnY,btnW,btnH,14);
+    ctx.fillStyle=hov?CONFIG.COLORS.accent:'rgba(59,130,246,0.5)'; ctx.fill();
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#fff'; ctx.font=`bold 15px ${SYS}`;
+    ctx.fillText(T('name_confirm'),CONFIG.WIDTH/2,btnY+btnH/2);
     ctx.restore();
 
     // Back link
     ctx.save();
-    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '13px Courier New';
-    ctx.fillText(T('name_back'), 24, Math.round(CONFIG.HEIGHT * 0.92));
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`14px ${SYS}`;
+    ctx.fillText('← '+T('name_back'),20,Math.round(CONFIG.HEIGHT*0.92));
     ctx.restore();
 
     this._drawCRT();
 
-    // Confirm button click
     if (this.input.consumeClick()) {
-      // Check confirm button
-      if (mx >= btnX && mx <= btnX+btnW && my >= btnY && my <= btnY+btnH) {
-        const v = this.nameEl ? this.nameEl.value.trim() : '';
-        if (v) { this.playerName = v; this._hideNameInput(); this.toMenu(); }
-        return;
+      if (mx>=btnX&&mx<=btnX+btnW&&my>=btnY&&my<=btnY+btnH) {
+        const v=this.nameEl?this.nameEl.value.trim():'';
+        if (v){this.playerName=v;this._hideNameInput();this.toMenu();} return;
       }
-      // Check back link (rough hit area)
-      if (mx < 140 && my > CONFIG.HEIGHT * 0.88) { this._hideNameInput(); this.toLangSelect(); }
+      if (mx<140&&my>CONFIG.HEIGHT*0.88){this._hideNameInput();this.toLangSelect();}
     }
   }
 
-  // ---- Game screen ----
-
-  _drawGame(ts) {
-    const ctx = this.ctx;
-    ctx.save(); ctx.translate(this.shakeX, this.shakeY);
-
-    ctx.fillStyle = CONFIG.COLORS.bg;
-    ctx.fillRect(-Math.abs(this.shakeX)-2, -Math.abs(this.shakeY)-2, CONFIG.WIDTH+4, CONFIG.HEIGHT+4);
-
-    // Grid dots
-    ctx.fillStyle = '#1a2233';
-    for (let gx=40; gx<CONFIG.WIDTH; gx+=40)
-      for (let gy=40; gy<CONFIG.HEIGHT; gy+=40) {
-        ctx.beginPath(); ctx.arc(gx,gy,1,0,Math.PI*2); ctx.fill();
-      }
-
-    this.ps.draw(ctx);
-    for (const e of this.enemies) e.draw(ctx);
-    for (const b of this.bullets) b.draw(ctx);
-    this.player.draw(ctx);
-    ctx.restore();
-
-    this._drawHUD(ts);
-    this._drawTouchOverlay();
-    this._drawCRT();
-  }
-
-  _drawHUD(ts) {
-    const ctx = this.ctx;
-    ctx.save();
-    for (let i=0; i<CONFIG.PLAYER_MAX_HP; i++) {
-      ctx.fillStyle   = i < this.player.hp ? '#FF4444' : '#2a1a1a';
-      ctx.font        = '22px Courier New';
-      ctx.textBaseline= 'top'; ctx.textAlign = 'left';
-      ctx.shadowColor = i < this.player.hp ? '#FF4444' : 'transparent';
-      ctx.shadowBlur  = i < this.player.hp ? 6 : 0;
-      ctx.fillText('♥', 14 + i*26, 10);
-    }
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = CONFIG.COLORS.hud; ctx.font = 'bold 22px Courier New';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText(this.score, CONFIG.WIDTH/2, 8);
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '11px Courier New';
-    ctx.fillText(T('hi_score') + ' ' + this.highScore, CONFIG.WIDTH/2, 33);
-    if (this.combo > 1) {
-      const pulse = 1 + Math.sin(ts*0.01)*0.06;
-      ctx.textAlign = 'right';
-      ctx.fillStyle = this.combo >= 5 ? CONFIG.COLORS.player : CONFIG.COLORS.accent;
-      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
-      ctx.font = 'bold ' + Math.floor((13+this.combo)*pulse) + 'px Courier New';
-      ctx.fillText('x' + this.combo + ' ' + T('combo'), CONFIG.WIDTH-12, 10);
-      ctx.shadowBlur = 0;
-    }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '13px Courier New';
-    const wt = this.waves.state === 'gap'
-      ? (this.waves.wave === 0 ? T('get_ready') : T('wave_in', this.waves.wave+1))
-      : T('wave', this.waves.wave);
-    ctx.fillText(wt, CONFIG.WIDTH/2, CONFIG.HEIGHT-8);
-    ctx.restore();
-  }
-
-  _drawCRT() {
-    const ctx = this.ctx;
-    ctx.save();
-    ctx.fillStyle = '#000'; ctx.globalAlpha = 0.04;
-    for (let y=0; y<CONFIG.HEIGHT; y+=3) ctx.fillRect(0, y, CONFIG.WIDTH, 1);
-    ctx.globalAlpha = 0.22;
-    const g = ctx.createRadialGradient(CONFIG.WIDTH/2,CONFIG.HEIGHT/2,CONFIG.HEIGHT*0.28,CONFIG.WIDTH/2,CONFIG.HEIGHT/2,CONFIG.HEIGHT*0.82);
-    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.9)');
-    ctx.fillStyle = g; ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
-    ctx.restore();
-  }
-
-  _drawTouchOverlay() {
-    if (!this._isTouchDevice()) return;
-    const ctx = this.ctx;
-    const j = this.input.touch.joystick, s = this.input.touch.shoot;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(CONFIG.WIDTH/2,0); ctx.lineTo(CONFIG.WIDTH/2,CONFIG.HEIGHT); ctx.stroke();
-    ctx.font = '11px Courier New'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
-    if (!j.active) { ctx.fillStyle = CONFIG.COLORS.dim; ctx.fillText(T('move'),  CONFIG.WIDTH*0.25, CONFIG.HEIGHT-35); }
-    if (!s.active) { ctx.fillStyle = CONFIG.COLORS.dim; ctx.fillText(T('shoot'), CONFIG.WIDTH*0.75, CONFIG.HEIGHT-35); }
-    if (j.active) {
-      const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=45;
-      const cx=j.startX+(dist>maxR?(dx/dist)*maxR:dx), cy=j.startY+(dist>maxR?(dy/dist)*maxR:dy);
-      ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(j.startX,j.startY,maxR,0,Math.PI*2); ctx.stroke();
-      ctx.fillStyle='rgba(255,255,255,0.35)';
-      ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2); ctx.fill();
-    }
-    if (s.active) {
-      ctx.strokeStyle=CONFIG.COLORS.player; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(s.x,s.y,22,0,Math.PI*2); ctx.stroke();
-      ctx.strokeStyle='rgba(255,215,0,0.4)'; ctx.lineWidth=1;
-      ctx.beginPath();
-      ctx.moveTo(s.x-30,s.y); ctx.lineTo(s.x+30,s.y);
-      ctx.moveTo(s.x,s.y-30); ctx.lineTo(s.x,s.y+30);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  // ---- MENU screen ----
+  // ---- MENU ----
 
   _drawMenu(ts) {
-    const ctx = this.ctx;
-    ctx.fillStyle = CONFIG.COLORS.bg;
-    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+    const ctx=this.ctx;
+    this._drawBg(ctx);
 
-    const titleY    = Math.round(CONFIG.HEIGHT * 0.15);
-    const subtitleY = Math.round(CONFIG.HEIGHT * 0.22);
-    const duckY     = Math.round(CONFIG.HEIGHT * 0.41);
-    const ctrlYBase = Math.round(CONFIG.HEIGHT * 0.59);
-    const promptY   = Math.round(CONFIG.HEIGHT * 0.77);
-    const hsY       = Math.round(CONFIG.HEIGHT * 0.83);
-
+    const titleY=Math.round(CONFIG.HEIGHT*0.14);
     ctx.save();
-    ctx.textAlign = 'center'; ctx.shadowColor = CONFIG.COLORS.player; ctx.shadowBlur = 35;
-    ctx.fillStyle = CONFIG.COLORS.player; ctx.font = 'bold 56px Courier New'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText('BUG SQUASHER', CONFIG.WIDTH/2, titleY); ctx.shadowBlur = 0;
-    ctx.fillStyle = CONFIG.COLORS.accent; ctx.font = '15px Courier New';
-    ctx.fillText(T('subtitle'), CONFIG.WIDTH/2, subtitleY);
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.player; ctx.shadowColor=CONFIG.COLORS.player; ctx.shadowBlur=22;
+    ctx.font=`bold 58px ${SYS}`; ctx.fillText('BUG SQUASHER',CONFIG.WIDTH/2,titleY); ctx.shadowBlur=0;
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`16px ${SYS}`;
+    ctx.fillText(T('subtitle'),CONFIG.WIDTH/2,titleY+26);
     ctx.restore();
 
-    this._drawMenuDuck(ctx, CONFIG.WIDTH/2, duckY, ts);
+    this._drawMenuDuck(ctx,CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.40),ts);
 
+    // Controls glass block
+    const ctrlW=Math.min(340,CONFIG.WIDTH*0.7), ctrlH=82, ctrlX=CONFIG.WIDTH/2-ctrlW/2, ctrlY=Math.round(CONFIG.HEIGHT*0.57);
+    this._glassPanel(ctx,ctrlX,ctrlY,ctrlW,ctrlH,14);
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '13px Courier New';
-    const lines = this._isTouchDevice()
-      ? [T('ctrl_move_t'), T('ctrl_shoot_t'), T('ctrl_both_t')]
-      : [T('ctrl_move'),   T('ctrl_shoot'),   T('ctrl_pause')];
-    lines.forEach((ln, i) => ctx.fillText(ln, CONFIG.WIDTH/2, ctrlYBase + i*22));
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`13px ${SYS}`;
+    const lines=this._isTouchDevice()?[T('ctrl_move_t'),T('ctrl_shoot_t'),T('ctrl_both_t')]:[T('ctrl_move'),T('ctrl_shoot'),T('ctrl_pause')];
+    lines.forEach((ln,i)=>ctx.fillText(ln,CONFIG.WIDTH/2,ctrlY+22+i*22));
     ctx.restore();
 
     this._drawEnemyPreviews(ctx);
 
-    if (Math.floor(ts/540) % 2 === 0) {
+    // Start prompt
+    const promptY=Math.round(CONFIG.HEIGHT*0.80);
+    if (Math.floor(ts/600)%2===0) {
       ctx.save();
-      ctx.fillStyle = CONFIG.COLORS.hud; ctx.font = 'bold 17px Courier New';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-      ctx.fillText(this._isTouchDevice() ? T('start_t') : T('start'), CONFIG.WIDTH/2, promptY);
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle=CONFIG.COLORS.textPri; ctx.font=`15px ${SYS}`;
+      ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),CONFIG.WIDTH/2,promptY);
       ctx.restore();
     }
 
-    if (this.highScore > 0) {
+    if (this.highScore>0) {
       ctx.save();
-      ctx.fillStyle = CONFIG.COLORS.accent; ctx.font = '13px Courier New';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-      ctx.fillText(T('hi_score') + ': ' + this.highScore, CONFIG.WIDTH/2, hsY);
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`13px ${SYS}`;
+      ctx.fillText(T('hi_score')+': '+this.highScore,CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.86));
       ctx.restore();
     }
 
-    // Player name in top-right (to change language, show small link)
     if (this.playerName) {
       ctx.save();
-      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-      ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '11px Courier New';
-      ctx.fillText('▶ ' + this.playerName, CONFIG.WIDTH - 12, 10);
+      ctx.textAlign='right'; ctx.textBaseline='top';
+      ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`12px ${SYS}`;
+      ctx.fillText('▶ '+this.playerName,CONFIG.WIDTH-14,12);
       ctx.restore();
     }
 
     this._drawCRT();
-    if (this.input.consumeAction() || this.input.consumeClick()) this.toPlaying();
+    if (this.input.consumeAction()||this.input.consumeClick()) this.toPlaying();
   }
 
   _drawMenuDuck(ctx, x, y, ts) {
@@ -1476,110 +1194,271 @@ class Game {
   }
 
   _drawEnemyPreviews(ctx) {
-    const previewY = Math.round(CONFIG.HEIGHT * 0.71);
-    const items = [
-      { key: 'enemy_spider',  color: CONFIG.COLORS.spider  },
-      { key: 'enemy_snake',   color: CONFIG.COLORS.snake   },
-      { key: 'enemy_octopus', color: CONFIG.COLORS.octopus },
-      { key: 'enemy_ghost',   color: CONFIG.COLORS.ghost   },
-    ];
-    items.forEach((p, i) => {
+    const y=Math.round(CONFIG.HEIGHT*0.72);
+    [{key:'enemy_spider',c:CONFIG.COLORS.spider},{key:'enemy_snake',c:CONFIG.COLORS.snake},{key:'enemy_octopus',c:CONFIG.COLORS.octopus},{key:'enemy_ghost',c:CONFIG.COLORS.ghost}]
+    .forEach((p,i)=>{
       ctx.save();
-      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 8;
-      ctx.font = '9px Courier New';
-      ctx.fillText(T(p.key), Math.round(CONFIG.WIDTH * (0.18 + i * 0.21)), previewY);
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle=p.c; ctx.shadowColor=p.c; ctx.shadowBlur=6;
+      ctx.font=`bold 9px ${MONO}`; ctx.fillText(T(p.key),Math.round(CONFIG.WIDTH*(0.17+i*0.22)),y);
       ctx.restore();
     });
   }
 
-  // ---- GAME OVER screen ----
+  // ---- GAME screen ----
+
+  _drawGame(ts) {
+    const ctx=this.ctx;
+    ctx.save(); ctx.translate(this.shakeX,this.shakeY);
+    ctx.fillStyle=CONFIG.COLORS.bg;
+    ctx.fillRect(-Math.abs(this.shakeX)-2,-Math.abs(this.shakeY)-2,CONFIG.WIDTH+4,CONFIG.HEIGHT+4);
+    // Subtle grid dots
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    for (let gx=40;gx<CONFIG.WIDTH;gx+=40)
+      for (let gy=40;gy<CONFIG.HEIGHT;gy+=40){ctx.beginPath();ctx.arc(gx,gy,1,0,Math.PI*2);ctx.fill();}
+    this.ps.draw(ctx);
+    for (const e of this.enemies) e.draw(ctx);
+    for (const b of this.bullets) b.draw(ctx);
+    this.player.draw(ctx);
+    ctx.restore();
+    this._drawHUD(ts);
+    this._drawTouchOverlay();
+    this._drawCRT();
+  }
+
+  _drawHUD(ts) {
+    const ctx=this.ctx;
+    ctx.save();
+    // Hearts
+    for (let i=0;i<CONFIG.PLAYER_MAX_HP;i++) {
+      ctx.fillStyle=i<this.player.hp?CONFIG.COLORS.error:'rgba(239,68,68,0.15)';
+      ctx.font=`22px ${SYS}`; ctx.textBaseline='top'; ctx.textAlign='left';
+      ctx.shadowColor=i<this.player.hp?CONFIG.COLORS.error:'transparent';
+      ctx.shadowBlur=i<this.player.hp?5:0;
+      ctx.fillText('♥',14+i*28,10);
+    }
+    ctx.shadowBlur=0;
+    // Score
+    ctx.fillStyle=CONFIG.COLORS.textPri; ctx.font=`bold 26px ${SYS}`;
+    ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillText(this.score,CONFIG.WIDTH/2,6);
+    ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`11px ${SYS}`;
+    ctx.fillText(T('hi_score')+' '+this.highScore,CONFIG.WIDTH/2,35);
+    // Combo
+    if (this.combo>1) {
+      const pulse=1+Math.sin(ts*0.01)*0.06;
+      ctx.textAlign='right';
+      ctx.fillStyle=this.combo>=5?CONFIG.COLORS.gold:CONFIG.COLORS.accent;
+      ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=8;
+      ctx.font=`bold ${Math.floor((13+this.combo)*pulse)}px ${MONO}`;
+      ctx.fillText('x'+this.combo+' '+T('combo'),CONFIG.WIDTH-12,10);
+      ctx.shadowBlur=0;
+    }
+    // Wave
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`12px ${SYS}`;
+    const wt=this.waves.state==='gap'?(this.waves.wave===0?T('get_ready'):T('wave_in',this.waves.wave+1)):T('wave',this.waves.wave);
+    ctx.fillText(wt,CONFIG.WIDTH/2,CONFIG.HEIGHT-8);
+    ctx.restore();
+  }
+
+  _drawBg(ctx) {
+    ctx.fillStyle=CONFIG.COLORS.bg; ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+  }
+
+  _drawCRT() {
+    const ctx=this.ctx;
+    ctx.save();
+    ctx.fillStyle='#000'; ctx.globalAlpha=0.035;
+    for (let y=0;y<CONFIG.HEIGHT;y+=3) ctx.fillRect(0,y,CONFIG.WIDTH,1);
+    ctx.globalAlpha=0.18;
+    const g=ctx.createRadialGradient(CONFIG.WIDTH/2,CONFIG.HEIGHT/2,CONFIG.HEIGHT*0.25,CONFIG.WIDTH/2,CONFIG.HEIGHT/2,CONFIG.HEIGHT*0.85);
+    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.85)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
+    ctx.restore();
+  }
+
+  _drawTouchOverlay() {
+    if (!this._isTouchDevice()) return;
+    const ctx=this.ctx, j=this.input.touch.joystick, s=this.input.touch.shoot;
+    ctx.save();
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(CONFIG.WIDTH/2,0); ctx.lineTo(CONFIG.WIDTH/2,CONFIG.HEIGHT); ctx.stroke();
+    ctx.font=`11px ${SYS}`; ctx.textBaseline='alphabetic'; ctx.textAlign='center';
+    if (!j.active){ctx.fillStyle=CONFIG.COLORS.textDim;ctx.fillText(T('move'),CONFIG.WIDTH*0.25,CONFIG.HEIGHT-35);}
+    if (!s.active){ctx.fillStyle=CONFIG.COLORS.textDim;ctx.fillText(T('shoot'),CONFIG.WIDTH*0.75,CONFIG.HEIGHT-35);}
+    if (j.active) {
+      const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=45;
+      const cx=j.startX+(dist>maxR?(dx/dist)*maxR:dx),cy=j.startY+(dist>maxR?(dy/dist)*maxR:dy);
+      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(j.startX,j.startY,maxR,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.30)';
+      ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2); ctx.fill();
+    }
+    if (s.active) {
+      ctx.strokeStyle=CONFIG.COLORS.player; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(s.x,s.y,22,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle='rgba(255,215,0,0.35)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(s.x-30,s.y);ctx.lineTo(s.x+30,s.y);ctx.moveTo(s.x,s.y-30);ctx.lineTo(s.x,s.y+30); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---- GAME OVER ----
 
   _drawGameOver(ts) {
-    const ctx = this.ctx;
+    const ctx=this.ctx;
     this._drawGame(ts);
 
+    // Dark overlay
     ctx.save();
-    ctx.fillStyle = 'rgba(13,17,23,0.88)';
-    ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.overlay; ctx.fillRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
 
-    ctx.shadowColor='#FF4444'; ctx.shadowBlur=24; ctx.fillStyle='#FF4444';
-    ctx.font = 'bold 44px Courier New';
-    ctx.fillText(T('seg_fault'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.18));
-    ctx.shadowBlur=0; ctx.fillStyle=CONFIG.COLORS.dim; ctx.font='14px Courier New';
-    ctx.fillText(T('core_dump'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.23));
+    // Error title — stays Courier New (dev humor)
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.error; ctx.font=`bold 40px ${MONO}`;
+    ctx.fillText(T('seg_fault'),CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.17));
+    ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`13px ${MONO}`;
+    ctx.fillText(T('core_dump'),CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.22));
 
-    ctx.fillStyle=CONFIG.COLORS.hud; ctx.font='bold 28px Courier New';
-    ctx.fillText(T('score_lbl') + ': ' + this.score, CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.30));
+    // Score glass card
+    const scW=Math.min(280,CONFIG.WIDTH*0.6), scH=64, scX=CONFIG.WIDTH/2-scW/2, scY=Math.round(CONFIG.HEIGHT*0.26);
+    this._glassPanel(ctx,scX,scY,scW,scH,16);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`12px ${SYS}`;
+    ctx.fillText(T('score_lbl').toUpperCase(),CONFIG.WIDTH/2,scY+16);
+    ctx.fillStyle=CONFIG.COLORS.textPri; ctx.font=`bold 30px ${SYS}`;
+    ctx.fillText(this.score,CONFIG.WIDTH/2,scY+42);
 
-    if (this.score > 0 && this.score >= this.highScore) {
-      ctx.fillStyle=CONFIG.COLORS.player; ctx.shadowColor=CONFIG.COLORS.player; ctx.shadowBlur=14;
-      ctx.font='bold 17px Courier New';
-      ctx.fillText(T('new_hi'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.36));
-      ctx.shadowBlur=0;
-    } else if (this.highScore > 0) {
-      ctx.fillStyle=CONFIG.COLORS.dim; ctx.font='13px Courier New';
-      ctx.fillText(T('best')+': '+this.highScore, CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.36));
+    // New best / previous best
+    const bestY=Math.round(CONFIG.HEIGHT*0.38);
+    ctx.textBaseline='alphabetic';
+    if (this.score>0&&this.score>=this.highScore) {
+      ctx.fillStyle=CONFIG.COLORS.gold; ctx.font=`bold 15px ${SYS}`;
+      ctx.fillText(T('new_hi'),CONFIG.WIDTH/2,bestY);
+    } else if (this.highScore>0) {
+      ctx.fillStyle=CONFIG.COLORS.textDim; ctx.font=`13px ${SYS}`;
+      ctx.fillText(T('best')+': '+this.highScore,CONFIG.WIDTH/2,bestY);
     }
 
     // Leaderboard
-    this._drawLeaderboard(ctx, ts);
+    this._drawLeaderboard(ctx);
 
-    if (Math.floor(ts/540) % 2 === 0) {
-      ctx.fillStyle=CONFIG.COLORS.hud; ctx.font='bold 15px Courier New';
-      ctx.fillText(this._isTouchDevice() ? T('restart_t') : T('restart'), CONFIG.WIDTH/2, Math.round(CONFIG.HEIGHT*0.94));
+    // Restart prompt
+    if (performance.now()-this._gameOverTs>600&&Math.floor(ts/600)%2===0) {
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillStyle=CONFIG.COLORS.textSec; ctx.font=`14px ${SYS}`;
+      ctx.fillText(this._isTouchDevice()?T('restart_t'):T('restart'),CONFIG.WIDTH/2,Math.round(CONFIG.HEIGHT*0.95));
     }
 
     this._drawCRT(); ctx.restore();
-    if (this.input.consumeAction() || this.input.consumeClick()) this.toPlaying();
+
+    // Input guard: only accept restart 600ms after game over
+    if (performance.now()-this._gameOverTs>600) {
+      if (this.input.consumeAction()||this.input.consumeClick()) this.toPlaying();
+    }
   }
 
-  _drawLeaderboard(ctx, ts) {
-    const startY = Math.round(CONFIG.HEIGHT * 0.42);
-    const lineH  = Math.min(22, CONFIG.HEIGHT * 0.032);
-    const maxRows = Math.min(8, Math.floor((CONFIG.HEIGHT * 0.46) / lineH));
+  _drawLeaderboard(ctx) {
+    const TOP_N = 10;
+    const panelPad = 14;
+    const lineH = Math.min(20, CONFIG.HEIGHT * 0.028);
+    const maxVisible = Math.min(TOP_N, Math.floor((CONFIG.HEIGHT * 0.44) / lineH));
+
+    // Find own entry in full list
+    const myIdx = this.leaderboard.findIndex(e => e.name === this.playerName && e.score === this.score);
+    const topEntries = this.leaderboard.slice(0, maxVisible);
+    const showOwnBelow = myIdx >= maxVisible;
+
+    // Panel sizing
+    const rowCount = topEntries.length + (showOwnBelow ? 2 : 0); // +2 for separator + own row
+    const headerH = 28;
+    const panelH = headerH + rowCount * lineH + panelPad * 2 + (this.submittingScore ? lineH : 0);
+    const panelW = Math.min(400, CONFIG.WIDTH * 0.82);
+    const panelX = CONFIG.WIDTH / 2 - panelW / 2;
+    const panelY = Math.round(CONFIG.HEIGHT * 0.41);
+
+    this._glassPanel(ctx, panelX, panelY, panelW, panelH, 16);
+
+    const colRank  = panelX + panelPad + 18;
+    const colName  = panelX + panelPad + 44;
+    const colScore = panelX + panelW - panelPad - 60;
+    const colWave  = panelX + panelW - panelPad;
 
     ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = CONFIG.COLORS.accent; ctx.font = 'bold 13px Courier New';
-    ctx.shadowColor = CONFIG.COLORS.accent; ctx.shadowBlur = 8;
-    ctx.fillText(T('leaderboard'), CONFIG.WIDTH/2, startY);
-    ctx.shadowBlur = 0;
+
+    // Header
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+    ctx.fillStyle = CONFIG.COLORS.accent; ctx.font = `bold 12px ${SYS}`;
+    ctx.fillText(T('leaderboard').toUpperCase(), CONFIG.WIDTH/2, panelY + headerH - 4);
+
+    // Separator under header
+    ctx.strokeStyle = CONFIG.COLORS.border; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(panelX+panelPad, panelY+headerH); ctx.lineTo(panelX+panelW-panelPad, panelY+headerH); ctx.stroke();
 
     if (this.submittingScore) {
-      ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '11px Courier New';
-      ctx.fillText(T('submitting'), CONFIG.WIDTH/2, startY + lineH);
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textSec; ctx.font = `12px ${SYS}`;
+      ctx.fillText(T('submitting'), CONFIG.WIDTH/2, panelY + headerH + lineH);
       ctx.restore(); return;
     }
 
-    const scores = this.leaderboard.slice(0, maxRows);
-    if (scores.length === 0) {
-      ctx.fillStyle = CONFIG.COLORS.dim; ctx.font = '11px Courier New';
-      ctx.fillText('—', CONFIG.WIDTH/2, startY + lineH);
+    if (topEntries.length === 0) {
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = `12px ${SYS}`;
+      ctx.fillText(T('lb_empty'), CONFIG.WIDTH/2, panelY + headerH + lineH);
       ctx.restore(); return;
     }
 
-    const colW  = Math.min(320, CONFIG.WIDTH * 0.7);
-    const lx    = CONFIG.WIDTH/2 - colW/2;
-
-    scores.forEach((entry, i) => {
-      const y = startY + (i+1) * lineH + 6;
-      const isMe = entry.name === this.playerName && entry.score === this.score;
-      ctx.fillStyle = isMe ? CONFIG.COLORS.player : (i === 0 ? CONFIG.COLORS.hud : CONFIG.COLORS.dim);
-      ctx.font = (isMe || i === 0 ? 'bold ' : '') + '11px Courier New';
-      ctx.textAlign = 'left';
-      ctx.fillText(`#${i+1}`, lx, y);
-      ctx.fillText(entry.name || '???', lx + 32, y);
-      ctx.textAlign = 'right';
-      ctx.fillText(entry.score, lx + colW - 50, y);
-      ctx.fillText(T('lb_wave') + ' ' + (entry.wave || '?'), lx + colW, y);
+    // Entries
+    topEntries.forEach((entry, i) => {
+      const y = panelY + headerH + (i + 1) * lineH + 2;
+      const isMe = i === myIdx;
+      ctx.textBaseline = 'alphabetic';
+      // Rank
+      ctx.textAlign = 'right'; ctx.fillStyle = isMe ? CONFIG.COLORS.gold : CONFIG.COLORS.textDim;
+      ctx.font = isMe ? `bold 11px ${SYS}` : `11px ${SYS}`;
+      ctx.fillText('#'+(i+1), colRank, y);
+      // Name
+      ctx.textAlign = 'left'; ctx.fillStyle = isMe ? CONFIG.COLORS.gold : (i===0 ? CONFIG.COLORS.textPri : CONFIG.COLORS.textSec);
+      ctx.font = isMe || i===0 ? `bold 11px ${SYS}` : `11px ${SYS}`;
+      ctx.fillText(entry.name||'???', colName, y);
+      // You tag
+      if (isMe) {
+        const tagX = colName + ctx.measureText(entry.name||'???').width + 6;
+        ctx.fillStyle = 'rgba(255,215,0,0.2)'; ctx.font = `10px ${SYS}`;
+        ctx.fillText(T('lb_you'), tagX, y);
+      }
+      // Score
+      ctx.textAlign = 'right'; ctx.fillStyle = isMe ? CONFIG.COLORS.gold : CONFIG.COLORS.textSec;
+      ctx.font = isMe ? `bold 11px ${MONO}` : `11px ${MONO}`;
+      ctx.fillText(entry.score, colScore, y);
+      // Wave
+      ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = `10px ${SYS}`;
+      ctx.fillText(T('lb_wave')+' '+(entry.wave||'?'), colWave, y);
     });
 
+    // Own entry below top N
+    if (showOwnBelow) {
+      const sepY = panelY + headerH + (topEntries.length + 0.7) * lineH + 4;
+      // Separator
+      ctx.strokeStyle = CONFIG.COLORS.border; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(panelX+panelPad, sepY); ctx.lineTo(panelX+panelW-panelPad, sepY); ctx.stroke();
+      ctx.setLineDash([]);
+      const own = this.leaderboard[myIdx];
+      const ownY = sepY + lineH;
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = `bold 11px ${SYS}`;
+      ctx.fillText('#'+(myIdx+1), colRank, ownY);
+      ctx.textAlign = 'left'; ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = `bold 11px ${SYS}`;
+      ctx.fillText(own.name||'???', colName, ownY);
+      ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.gold; ctx.font = `bold 11px ${MONO}`;
+      ctx.fillText(own.score, colScore, ownY);
+      ctx.textAlign = 'right'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = `10px ${SYS}`;
+      ctx.fillText(T('lb_wave')+' '+(own.wave||'?'), colWave, ownY);
+    }
+
+    // Offline note
     if (!CONFIG.LEADERBOARD_URL) {
-      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.dim;
-      ctx.font = '9px Courier New';
-      ctx.fillText(T('lb_offline'), CONFIG.WIDTH/2, startY + (scores.length+1)*lineH + 10);
+      ctx.textAlign = 'center'; ctx.fillStyle = CONFIG.COLORS.textDim; ctx.font = `9px ${SYS}`;
+      ctx.fillText(T('lb_offline'), CONFIG.WIDTH/2, panelY + panelH - 5);
     }
 
     ctx.restore();

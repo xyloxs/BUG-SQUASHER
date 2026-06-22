@@ -4,6 +4,29 @@ All notable changes to **BUG-SQUASHER** are listed here.
 
 ---
 
+## v1.3.0 — 2026-06-22
+
+### Fixes
+
+| Fix | Detail |
+|---|---|
+| **Auto-restart bug** | `toGameOver()` now flushes residual input and sets a 600ms guard; game stays on Game Over screen until intentional input |
+| **Missing translations** | `lb_empty` key added to all 4 languages; no more hardcoded `—` in leaderboard |
+| **Leaderboard Top 10** | Shows up to 10 entries; if own score is outside top 10, it appears separately below a dashed separator with correct rank |
+
+### Improvements
+
+| Improvement | Detail |
+|---|---|
+| **Apple-inspired visual redesign** | System font (`-apple-system`) for UI text; Courier New kept only for code-themed elements (scores, wave labels, SEGFAULT, enemy names) |
+| **Glass panels** | Cards, controls block, score panel, leaderboard panel use `rgba` glass fill + hairline borders |
+| **Cleaner color palette** | Darker bg `#0a0e17`, calmer accent `#3B82F6`, `#EF4444` for error, `#F1F5F9` text — consistent hierarchy |
+| **Glow reduction** | Glow only on game entities (gameplay feedback) and main titles; UI text uses weight/size for hierarchy instead |
+| **Leaderboard "You" tag** | Own entry always highlighted in gold; `lb_you` label appended |
+| **Input field redesign** | Glass-style DOM input with `backdrop-filter`, hairline border, smooth focus transition |
+
+---
+
 ## v1.2.0 — 2026-06-22
 
 ### New Features
