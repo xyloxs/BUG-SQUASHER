@@ -405,6 +405,7 @@ class InputManager {
     this._lastMoveAngle  = 0;
     this._spaceHeld      = false;
     this._scale          = 1; // updated by Game._initCanvas via setScale()
+    this._touchEverUsed  = false;
     this._bindKeyboard();
     this._bindMouse(canvas);
     this._bindTouch(canvas);
@@ -444,6 +445,7 @@ class InputManager {
     };
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
+      this._touchEverUsed = true;
       for (const t of e.changedTouches) {
         const p = toLogical(t.clientX, t.clientY);
         // Always mirror into mouse for menu hit-tests
@@ -516,7 +518,15 @@ class InputManager {
   consumePause()   { const v = this._pauseConsumed;  this._pauseConsumed  = false; return v; }
   consumeAction()  { const v = this._actionConsumed; this._actionConsumed = false; return v; }
   consumeClick()   { const v = this._clickConsumed;  this._clickConsumed  = false; return v; }
-  clearAll()       { this._pauseConsumed = false; this._actionConsumed = false; this._clickConsumed = false; }
+  clearAll() {
+    this._pauseConsumed  = false;
+    this._actionConsumed = false;
+    this._clickConsumed  = false;
+    this._spaceHeld      = false;
+    this.mouse.down      = false;
+    this.touch.shoot.active   = false;
+    this.touch.joystick.active = false;
+  }
 }
 
 // =============================================================================
@@ -907,38 +917,38 @@ class Game {
   _hideNameInput() { if (!this.nameEl) return; this.nameEl.classList.remove('visible'); this.nameEl.blur(); }
 
   _initCanvas() {
-    const dpr    = window.devicePixelRatio || 1;
-    const scaleX = window.innerWidth  / CONFIG.WIDTH;
-    const scaleY = window.innerHeight / CONFIG.HEIGHT;
-    // Fill screen: scale up to fit (cover, not letterbox — crops slightly if aspect differs)
-    const scale  = Math.max(scaleX, scaleY);
-    this._scale  = scale;
+    const dpr     = window.devicePixelRatio || 1;
+    const pad     = 20; // minimum px gap on every side (CSS pixels)
+    const availW  = window.innerWidth  - pad * 2;
+    const availH  = window.innerHeight - pad * 2;
+    const scaleX  = availW  / CONFIG.WIDTH;
+    const scaleY  = availH  / CONFIG.HEIGHT;
+    // contain (letterbox): never exceed available area, keep aspect ratio
+    const scale   = Math.min(scaleX, scaleY);
+    this._scale   = scale;
+
+    const cssW  = Math.round(CONFIG.WIDTH  * scale);
+    const cssH  = Math.round(CONFIG.HEIGHT * scale);
 
     // Canvas physical pixels
-    this.canvas.width  = Math.round(CONFIG.WIDTH  * scale * dpr);
-    this.canvas.height = Math.round(CONFIG.HEIGHT * scale * dpr);
+    this.canvas.width  = Math.round(cssW * dpr);
+    this.canvas.height = Math.round(cssH * dpr);
 
-    // CSS size — fills viewport
-    this.canvas.style.width  = Math.round(CONFIG.WIDTH  * scale) + 'px';
-    this.canvas.style.height = Math.round(CONFIG.HEIGHT * scale) + 'px';
+    // CSS size
+    this.canvas.style.width  = cssW + 'px';
+    this.canvas.style.height = cssH + 'px';
 
-    // Center canvas if one dimension overflows (cover mode)
-    const offX = (window.innerWidth  - CONFIG.WIDTH  * scale) / 2;
-    const offY = (window.innerHeight - CONFIG.HEIGHT * scale) / 2;
+    // Center within viewport
     this.canvas.style.position = 'fixed';
-    this.canvas.style.left     = Math.round(offX) + 'px';
-    this.canvas.style.top      = Math.round(offY) + 'px';
+    this.canvas.style.left     = Math.round((window.innerWidth  - cssW) / 2) + 'px';
+    this.canvas.style.top      = Math.round((window.innerHeight - cssH) / 2) + 'px';
 
-    // Transform: scale * dpr maps logical px → physical px
+    // Transform: maps logical 800×600 px → physical pixels
     this.ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
 
-    // Tell InputManager the current scale for coordinate mapping
     if (this.input) this.input.setScale(scale);
   }
-  _onResize() {
-    this._initCanvas();
-    // Player stays within logical bounds — no clamping needed since bounds are fixed
-  }
+  _onResize() { this._initCanvas(); }
   _startLoop() {
     const loop=ts=>{
       let dt=ts-this.lastTs; this.lastTs=ts;
@@ -1042,7 +1052,11 @@ class Game {
     this.audio.playPop();this._shake(4);
   }
   _shake(m){this.shakeX=(Math.random()*2-1)*m;this.shakeY=(Math.random()*2-1)*m;}
-  _isTouchDevice(){return 'ontouchstart' in window||navigator.maxTouchPoints>0;}
+  _isTouchDevice() {
+    // Check both static API and whether a touch has actually fired this session
+    return this._touchEverUsed || navigator.maxTouchPoints > 0 || ('ontouchstart' in window);
+  }
+  _markTouchUsed() { this._touchEverUsed = true; }
 
   // ---- Draw helpers ----
 
@@ -1384,14 +1398,17 @@ class Game {
   }
 
   _drawTouchOverlay(){
-    if(!this._isTouchDevice())return;
+    // Show shoot button whenever touch is available (detected or ever used)
+    const hasTouch = this._isTouchDevice();
+    if (!hasTouch) return;
+
     const ctx=this.ctx;
     const j=this.input.touch.joystick;
     const s=this.input.touch.shoot;
 
     ctx.save();
 
-    // Joystick visual
+    // Joystick visual — only when active
     if(j.active){
       const dx=j.curX-j.startX,dy=j.curY-j.startY,dist=Math.hypot(dx,dy),maxR=48;
       const cx=j.startX+(dist>maxR?(dx/dist)*maxR:dx),cy=j.startY+(dist>maxR?(dy/dist)*maxR:dy);
@@ -1401,26 +1418,30 @@ class Game {
       ctx.beginPath();ctx.arc(cx,cy,22,0,Math.PI*2);ctx.fill();
     }
 
-    // Shoot button — fixed bottom-right
-    const btnR  = Math.min(52, CONFIG.WIDTH * 0.09);
-    const btnX  = CONFIG.WIDTH  - btnR - 28;
-    const btnY  = CONFIG.HEIGHT - btnR - 28;
+    // Shoot button — always visible, bottom-right
+    const btnR   = 44;
+    const btnX   = CONFIG.WIDTH  - btnR - 24;
+    const btnY   = CONFIG.HEIGHT - btnR - 24;
     const pressed = s.active;
 
-    ctx.shadowColor = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.3)';
-    ctx.shadowBlur  = pressed ? 18 : 6;
-    ctx.fillStyle   = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.12)';
-    ctx.beginPath(); ctx.arc(btnX, btnY, btnR, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.25)';
-    ctx.lineWidth   = 2;
+    // Outer ring (always visible)
+    ctx.strokeStyle = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.35)';
+    ctx.lineWidth   = 2.5;
     ctx.beginPath(); ctx.arc(btnX, btnY, btnR, 0, Math.PI*2); ctx.stroke();
+
+    // Fill
+    ctx.fillStyle = pressed ? CONFIG.COLORS.player : 'rgba(255,255,255,0.10)';
+    ctx.shadowColor = pressed ? CONFIG.COLORS.player : 'transparent';
+    ctx.shadowBlur  = pressed ? 20 : 0;
+    ctx.beginPath(); ctx.arc(btnX, btnY, btnR, 0, Math.PI*2); ctx.fill();
     ctx.shadowBlur  = 0;
 
-    // Duck icon on button
-    ctx.fillStyle = pressed ? '#0a0e17' : CONFIG.COLORS.textPri;
-    ctx.font      = `${Math.round(btnR * 0.72)}px serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('🦆', btnX, btnY);
+    // Duck emoji label
+    ctx.fillStyle    = pressed ? '#0a0e17' : 'rgba(255,255,255,0.85)';
+    ctx.font         = '28px serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🦆', btnX, btnY + 1);
 
     ctx.restore();
   }
