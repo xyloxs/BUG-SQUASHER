@@ -17,10 +17,11 @@ const CONFIG = {
   PLAYER_SPEED:         260,
   PLAYER_RADIUS:        18,
   PLAYER_MAX_HP:        5,
-  PLAYER_INVINCIBLE_MS: 700,   // was 1200 — less grace time after hit
+  PLAYER_INVINCIBLE_MS: 700,
   BULLET_SPEED:         520,
   BULLET_RADIUS:        5,
-  SHOOT_COOLDOWN:       200,   // was 130 — ~35% slower fire rate
+  SHOOT_COOLDOWN:       200,   // desktop; mobile uses SHOOT_COOLDOWN_MOBILE
+  SHOOT_COOLDOWN_MOBILE: 340,  // mobile ~40% slower fire rate than desktop
 
   COMBO_RESET_MS:  3000,
   SHAKE_DECAY:     0.82,
@@ -470,6 +471,7 @@ class InputManager {
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
       this._touchEverUsed = true;
+      window.__isMobile = true;  // permanent flag — affects cooldown, enemy HP
       for (const t of e.changedTouches) {
         const p = toLogical(t.clientX, t.clientY);
         this.mouse.x = p.x; this.mouse.y = p.y;
@@ -639,7 +641,8 @@ class Player extends Entity {
   }
   tryShoot(audio){
     if(this.shootTimer>0)return null;
-    this.shootTimer=CONFIG.SHOOT_COOLDOWN;this.squishTimer=100;
+    this.shootTimer = window.__isMobile ? CONFIG.SHOOT_COOLDOWN_MOBILE : CONFIG.SHOOT_COOLDOWN;
+    this.squishTimer=100;
     audio.playShoot();return new Bullet(this.x,this.y,this.facing);
   }
   takeDamage(audio){
@@ -850,25 +853,29 @@ class WaveManager {
   }
   _buildWave(){
     const w=this.wave,types=[];
-    // Snakes from wave 1, octopus from wave 2, ghosts from wave 3
-    const nSp=Math.min(2+w,9);
-    const nSn=Math.max(0,w);                        // 1 snake wave 1, scales linearly
-    const nOc=Math.max(0,Math.floor((w-1)/2));      // first octopus wave 2
-    const nGh=Math.max(0,Math.floor((w-2)/3));      // first ghost wave 3
+    const mob=window.__isMobile?1.4:1.0; // 40% more enemies on mobile
+    const nSp=Math.min(Math.round((2+w)*mob),14);
+    const nSn=Math.max(0,Math.round(w*mob));
+    const nOc=Math.max(0,Math.round(Math.floor((w-1)/2)*mob));
+    const nGh=Math.max(0,Math.round(Math.floor((w-2)/3)*mob));
     for(let i=0;i<nSp;i++)types.push('Spider');
     for(let i=0;i<nSn;i++)types.push('Snake');
     for(let i=0;i<nOc;i++)types.push('Octopus');
     for(let i=0;i<nGh;i++)types.push('Ghost');
     for(let i=types.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[types[i],types[j]]=[types[j],types[i]];}
-    this.spawnQueue=types.map((type,i)=>({type,timer:i*160,player:null}));  // was 250ms
+    this.spawnQueue=types.map((type,i)=>({type,timer:i*160,player:null}));
     this.enemiesThisWave=types.length;
   }
   _spawnEnemy(type,playerRef){
     const pos=this._edgePosition(),p=playerRef||{x:CONFIG.WIDTH/2,y:CONFIG.HEIGHT/2};
-    if(type==='Spider')  return new Spider(pos.x,pos.y);
-    if(type==='Snake')   return new Snake(pos.x,pos.y,p);
-    if(type==='Octopus') return new Octopus(pos.x,pos.y);
-    return new Ghost(pos.x,pos.y);
+    let e;
+    if(type==='Spider')  e=new Spider(pos.x,pos.y);
+    else if(type==='Snake')   e=new Snake(pos.x,pos.y,p);
+    else if(type==='Octopus') e=new Octopus(pos.x,pos.y);
+    else e=new Ghost(pos.x,pos.y);
+    // Mobile: enemies take significantly more hits
+    if(window.__isMobile) e.hp=Math.ceil(e.hp*2.0);
+    return e;
   }
   injectPlayer(player){for(const e of this.spawnQueue)e.player=player;}
   _edgePosition(){
