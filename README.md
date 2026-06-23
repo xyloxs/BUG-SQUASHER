@@ -82,4 +82,8 @@ Open `index.html` directly in a browser. No server required for local play.
 
 ## License
 
-Private - Building Challenge submission
+Copyright (c) 2026 GSE — All rights reserved.
+
+This game was created by GSE as an original work for the SKAILE Academy Building Challenge.
+
+Copying, redistribution, or use of any part of this code or concept without prior written consent is not permitted. For licensing inquiries or collaboration, contact us at [gse.events](https://gse.events).

@@ -2,6 +2,12 @@
  * BUG SQUASHER
  * Rubber duck debugging — taken literally.
  * Vanilla HTML5 Canvas + Web Audio API. Zero dependencies. Zero build step.
+ *
+ * Copyright (c) 2026 GSE — All rights reserved.
+ * Original work created for the SKAILE Academy Building Challenge.
+ * Copying or reuse without prior written consent is not permitted.
+ * Contact: https://gse.events
+ *
  * @author GSE Developer <github@gse.events>
  * @see https://github.com/xyloxs/BUG-SQUASHER
  */
