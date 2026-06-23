@@ -29,6 +29,8 @@ const CONFIG = {
 
   BASE_SCORES: { Spider: 10, Snake: 15, Octopus: 20, Ghost: 25 },
   MASTER_VOLUME:   0.28,
+  // Difficulty multipliers — set by player on DIFFICULTY screen
+  DIFF: { enemySpeed: 1.0, enemyHp: 1.0, waveGap: 1200, shootCooldown: 200, shootCooldownMobile: 340 },
   HS_KEY:          'bugSquasher_hs',
   LANG_KEY:        'bugSquasher_lang',
   SCORES_KEY:      'bugSquasher_scores',
@@ -92,6 +94,10 @@ const STRINGS = {
     intro_cta:     'Tap or press any key',
     score_lbl:     'Score',
     lang_sub:      'Your browser language was pre-selected',
+    diff_title:    'How hard do you want it?',
+    diff_easy:     'Easy',     diff_easy_sub:   'Slow start, relaxed pace',
+    diff_normal:   'Normal',   diff_normal_sub: 'The intended experience',
+    diff_hard:     'Hard',     diff_hard_sub:   'No mercy',
     name_title:    "What's your name?",
     name_sub:      'Shown on the leaderboard',
     name_hint:     'Press Enter to confirm',
@@ -146,6 +152,10 @@ const STRINGS = {
     restart:       'Klick oder Leertaste',
     lang_title:    'Sprache wählen',
     lang_sub:      'Browser-Sprache wurde vorausgewählt',
+    diff_title:    'Wie schwer soll es sein?',
+    diff_easy:     'Einfach',  diff_easy_sub:   'Entspannter Einstieg',
+    diff_normal:   'Normal',   diff_normal_sub: 'Das volle Erlebnis',
+    diff_hard:     'Schwer',   diff_hard_sub:   'Kein Erbarmen',
     name_title:    'Wie heißt du?',
     name_sub:      'Erscheint in der Bestenliste',
     name_hint:     'Enter drücken zum Bestätigen',
@@ -200,6 +210,10 @@ const STRINGS = {
     restart:       'Clic ou Espace pour rejouer',
     lang_title:    'Choisir la langue',
     lang_sub:      'Langue du navigateur présélectionnée',
+    diff_title:    'Quelle difficulté?',
+    diff_easy:     'Facile',   diff_easy_sub:   'Début tranquille',
+    diff_normal:   'Normal',   diff_normal_sub: "L'expérience complète",
+    diff_hard:     'Difficile',diff_hard_sub:   'Sans pitié',
     name_title:    'Quel est votre nom ?',
     name_sub:      'Apparaîtra dans le classement',
     name_hint:     'Entrée pour confirmer',
@@ -254,6 +268,10 @@ const STRINGS = {
     restart:       'Clic o Espacio para jugar de nuevo',
     lang_title:    'Seleccionar idioma',
     lang_sub:      'Idioma del navegador preseleccionado',
+    diff_title:    '¿Qué dificultad?',
+    diff_easy:     'Fácil',    diff_easy_sub:   'Inicio relajado',
+    diff_normal:   'Normal',   diff_normal_sub: 'La experiencia completa',
+    diff_hard:     'Difícil',  diff_hard_sub:   'Sin piedad',
     name_title:    '¿Cómo te llamas?',
     name_sub:      'Aparecerá en la clasificación',
     name_hint:     'Enter para confirmar',
@@ -308,6 +326,10 @@ const STRINGS = {
     restart:       'انقر أو المسافة للعب مجدداً',
     lang_title:    'اختر اللغة',
     lang_sub:      'لغة المتصفح محددة مسبقاً',
+    diff_title:    'ما مستوى الصعوبة؟',
+    diff_easy:     'سهل',      diff_easy_sub:   'بداية هادئة',
+    diff_normal:   'عادي',     diff_normal_sub: 'التجربة الكاملة',
+    diff_hard:     'صعب',      diff_hard_sub:   'بلا رحمة',
     name_title:    'ما اسمك؟',
     name_sub:      'سيظهر في لوحة المتصدرين',
     name_hint:     'اضغط Enter للتأكيد',
@@ -741,7 +763,7 @@ class Player extends Entity {
   }
   tryShoot(audio){
     if(this.shootTimer>0)return null;
-    this.shootTimer=window.__isMobile?CONFIG.SHOOT_COOLDOWN_MOBILE:CONFIG.SHOOT_COOLDOWN;
+    this.shootTimer=window.__isMobile?CONFIG.DIFF.shootCooldownMobile:CONFIG.DIFF.shootCooldown;
     this.squishTimer=100;
     audio.playShoot();
     if(window.__powerUpDoubleShot){
@@ -1490,7 +1512,7 @@ class WaveManager {
       this.spawnQueue[0].timer-=dt;
       if(this.spawnQueue[0].timer<=0){const e=this.spawnQueue.shift();enemies.push(this._spawnEnemy(e.type,e.player,e.wave));}
     }
-    if(this.spawnQueue.length===0&&enemies.length===0){this.state='gap';this.gapTimer=CONFIG.WAVE_GAP_MS;this.waveCleared=true;audio.playWaveClear();}
+    if(this.spawnQueue.length===0&&enemies.length===0){this.state='gap';this.gapTimer=CONFIG.DIFF.waveGap;this.waveCleared=true;audio.playWaveClear();}
   }
   _buildWave(){
     const w=this.wave,types=[];
@@ -1526,8 +1548,9 @@ class WaveManager {
     } else {
       e=new Ghost(pos.x,pos.y);
     }
-    // Mobile: enemies take significantly more hits
-    if(window.__isMobile) e.hp=Math.ceil(e.hp*2.0);
+    // Apply difficulty + mobile scaling
+    e.hp = Math.ceil(e.hp * CONFIG.DIFF.enemyHp * (window.__isMobile ? 1.4 : 1.0));
+    if(e.speed !== undefined) e.speed *= CONFIG.DIFF.enemySpeed;
     return e;
   }
   injectPlayer(player){for(const e of this.spawnQueue)e.player=player;}
@@ -1562,7 +1585,7 @@ class Game {
     this.playerName='';
     this.leaderboard=this._loadLocalScores();
     this.scoreSubmitted=false;this.submittingScore=false;
-    this._langCards=[];this._newPlayerLinkBounds=null;
+    this._langCards=[];this._newPlayerLinkBounds=null;this._diffCards=[];this._selectedDiff='normal';
     this._autoAimTarget=null;
     this._wireNameInput();
     this._initCanvas();
@@ -1636,9 +1659,10 @@ class Game {
   }
 
   // ---- State Transitions ----
-  toIntro()      {this.state='INTRO';this._introTs=0;}
-  toLangSelect(){this._hideNameInput();this.state='LANG_SELECT';}
-  toNameInput() {this._showNameInput();this.state='NAME_INPUT';}
+  toIntro()       {this.state='INTRO';this._introTs=0;}
+  toLangSelect()  {this._hideNameInput();this.state='LANG_SELECT';}
+  toDifficulty()  {this.state='DIFFICULTY';this._diffCards=[];}
+  toNameInput()   {this._showNameInput();this.state='NAME_INPUT';}
   toMenu()      {this._hideNameInput();this.state='MENU';}
   toPlaying(){
     this.score=0;this.combo=1;this.comboTimer=0;
@@ -2210,6 +2234,7 @@ class Game {
     ctx.clearRect(0,0,CONFIG.WIDTH,CONFIG.HEIGHT);
     if(this.state==='INTRO')       {this._drawIntro(ts);       this._drawFooter(ts);return;}
     if(this.state==='LANG_SELECT') {this._drawLangSelect(ts);  this._drawFooter(ts);return;}
+    if(this.state==='DIFFICULTY')  {this._drawDifficulty(ts);  this._drawFooter(ts);return;}
     if(this.state==='NAME_INPUT')  {this._drawNameInput(ts);   this._drawFooter(ts);return;}
     if(this.state==='MENU')        {this._drawMenu(ts);        this._drawFooter(ts);return;}
     if(this.state==='GAME_OVER')   {this._drawGameOver(ts);    this._drawFooter(ts);return;}
@@ -2306,9 +2331,107 @@ class Game {
     if(this.input.consumeClick()){
       for(const card of this._langCards){
         if(mx>=card.x&&mx<=card.x+card.w&&my>=card.y&&my<=card.y+card.h){
-          this._setLang(card.code);this.toNameInput();return;
+          this._setLang(card.code);this.toDifficulty();return;
         }
       }
+    }
+  }
+
+  // ---- DIFFICULTY ----
+  _drawDifficulty(ts){
+    const ctx=this.ctx;
+    this._drawBg(ctx);
+    ctx.direction=isRTL()?'rtl':'ltr';
+    const cx=CONFIG.WIDTH/2;
+
+    // Title
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.player;ctx.shadowColor=CONFIG.COLORS.player;ctx.shadowBlur=16;
+    ctx.font=F(40,'bold');ctx.fillText('BUG SQUASHER',cx,Math.round(CONFIG.HEIGHT*0.14));
+    ctx.shadowBlur=0;ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
+    ctx.fillText(T('diff_title'),cx,Math.round(CONFIG.HEIGHT*0.14)+26);
+    ctx.restore();
+
+    const difficulties=[
+      {key:'easy',  label:T('diff_easy'),  sub:T('diff_easy_sub'),
+       color:'#30D158', icon:'🐢',
+       mult:{enemySpeed:0.7, enemyHp:0.7, waveGap:2200, shootCooldown:160, shootCooldownMobile:280}},
+      {key:'normal',label:T('diff_normal'),sub:T('diff_normal_sub'),
+       color:CONFIG.COLORS.accent, icon:'⚡',
+       mult:{enemySpeed:1.0, enemyHp:1.0, waveGap:1200, shootCooldown:200, shootCooldownMobile:340}},
+      {key:'hard',  label:T('diff_hard'),  sub:T('diff_hard_sub'),
+       color:CONFIG.COLORS.error, icon:'💀',
+       mult:{enemySpeed:1.35,enemyHp:1.5, waveGap:800,  shootCooldown:250, shootCooldownMobile:400}},
+    ];
+
+    const cardW=Math.min(200,CONFIG.WIDTH*0.28),cardH=110,gapX=Math.min(20,CONFIG.WIDTH*0.03);
+    const gridW=cardW*3+gapX*2,startX=cx-gridW/2;
+    const startY=Math.round(CONFIG.HEIGHT*0.32);
+    this._diffCards=[];
+    const mx=this.input.mouse.x,my=this.input.mouse.y;
+
+    difficulties.forEach((d,i)=>{
+      const x=startX+i*(cardW+gapX),y=startY;
+      const isActive=this._selectedDiff===d.key;
+      const isHov=mx>=x&&mx<=x+cardW&&my>=y&&my<=y+cardH;
+      this._diffCards.push({key:d.key,mult:d.mult,x,y,w:cardW,h:cardH});
+
+      ctx.save();
+      if(isActive){
+        ctx.shadowColor=d.color;ctx.shadowBlur=16;
+        this._card(ctx,x,y,cardW,cardH,14,d.color+'33','transparent');
+        ctx.strokeStyle=d.color;ctx.lineWidth=2;this._rr(ctx,x,y,cardW,cardH,14);ctx.stroke();
+      } else {
+        this._card(ctx,x,y,cardW,cardH,14);
+        if(isHov){this._rr(ctx,x,y,cardW,cardH,14);ctx.fillStyle='rgba(255,255,255,0.04)';ctx.fill();}
+      }
+      ctx.shadowBlur=0;
+
+      // Icon
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='36px serif';ctx.fillText(d.icon,x+cardW/2,y+36);
+
+      // Label
+      ctx.fillStyle=isActive?d.color:CONFIG.COLORS.textPri;
+      ctx.font=F(16,'bold');ctx.fillText(d.label,x+cardW/2,y+68);
+
+      // Sub
+      ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(10);
+      fillTextFit(ctx,d.sub,x+cardW/2,y+87,cardW-16,10);
+      ctx.restore();
+    });
+
+    // Hint
+    const hintY=startY+cardH+28;
+    const readyToContinue=this._selectedDiff;
+    if(readyToContinue&&Math.floor(ts/600)%2===0){
+      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textPri;ctx.font=F(13);
+      ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),cx,hintY);
+      ctx.restore();
+    } else if(!readyToContinue){
+      ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
+      ctx.fillText(this._isTouchDevice()?'Tippe eine Option an':'Klicke eine Option an',cx,hintY);
+      ctx.restore();
+    }
+
+    this._vignette(ctx);
+
+    if(this.input.consumeClick()){
+      for(const card of this._diffCards){
+        if(mx>=card.x&&mx<=card.x+card.w&&my>=card.y&&my<=card.y+card.h){
+          this._selectedDiff=card.key;
+          Object.assign(CONFIG.DIFF,card.mult);
+          this.toNameInput();return;
+        }
+      }
+      // Tap anywhere after selection = confirm
+      if(this._selectedDiff){
+        this.toNameInput();
+      }
+    }
+    // Keyboard: 1/2/3 or Enter after mouse hover
+    if(this.input.consumeAction()&&this._selectedDiff){
+      this.toNameInput();
     }
   }
 
@@ -2973,7 +3096,7 @@ class Game {
           // New player: clear name, go to name input
           this.playerName='';
           this.input.clearAll();
-          this.toNameInput();
+          this.toDifficulty();
         } else {
           this.toPlaying();
         }
