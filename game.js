@@ -1,3 +1,10 @@
+/**
+ * BUG SQUASHER
+ * Rubber duck debugging — taken literally.
+ * Vanilla HTML5 Canvas + Web Audio API. Zero dependencies. Zero build step.
+ * @author GSE Developer <github@gse.events>
+ * @see https://github.com/xyloxs/BUG-SQUASHER
+ */
 // =============================================================================
 // BUG SQUASHER v1.5.0
 // =============================================================================
@@ -809,79 +816,6 @@ class Player extends Entity {
     this._drawAccessories(ctx,this.accessoryLevel);
     ctx.restore();
   }
-  _drawBody(ctx){
-    // Radial gradient: bright yellow center → warm amber edge
-    const bg=ctx.createRadialGradient(-2,1,2,-2,1,19);
-    bg.addColorStop(0,'#FFE840');bg.addColorStop(0.55,'#FFD60A');bg.addColorStop(1,'#C48A00');
-    ctx.save();ctx.shadowColor='rgba(255,190,0,0.6)';ctx.shadowBlur=10;
-    ctx.fillStyle=bg;
-    ctx.beginPath();ctx.ellipse(0,3,18,14,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#A06800';ctx.lineWidth=1.5;ctx.stroke();ctx.shadowBlur=0;
-    // Wing shape: slightly darker curved arc on left side
-    const wg=ctx.createLinearGradient(-16,-4,-4,10);
-    wg.addColorStop(0,'rgba(180,120,0,0.45)');wg.addColorStop(1,'rgba(180,120,0,0.08)');
-    ctx.fillStyle=wg;
-    ctx.beginPath();ctx.moveTo(-4,0);ctx.quadraticCurveTo(-20,-2,-18,10);ctx.quadraticCurveTo(-10,14,-2,10);ctx.closePath();ctx.fill();
-    // Wing feather edge lines
-    ctx.strokeStyle='rgba(150,90,0,0.4)';ctx.lineWidth=0.9;ctx.lineCap='round';
-    for(let i=0;i<3;i++){const t=0.3+i*0.2;ctx.beginPath();ctx.moveTo(-18+i*4,2+i*2);ctx.quadraticCurveTo(-14+i*3,8+i*1,-4+i*2,9);ctx.stroke();}
-    ctx.lineCap='butt';ctx.restore();
-  }
-  _drawHead(ctx){
-    const hg=ctx.createRadialGradient(5,-13,1.5,7,-11,11);
-    hg.addColorStop(0,'#FFE840');hg.addColorStop(0.5,'#FFD60A');hg.addColorStop(1,'#B07800');
-    ctx.save();ctx.fillStyle=hg;
-    ctx.beginPath();ctx.arc(7,-11,11,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#A06800';ctx.lineWidth=1.4;ctx.stroke();
-    // Specular highlight upper-left of head
-    ctx.fillStyle='rgba(255,255,255,0.42)';ctx.beginPath();ctx.arc(3,-16,2.8,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
-  _drawBill(ctx){
-    // Gradient: bright orange top → dark orange bottom
-    const billGrad=ctx.createLinearGradient(14,-13,26,-4);
-    billGrad.addColorStop(0,'#FF9500');billGrad.addColorStop(1,'#C05000');
-    ctx.save();ctx.fillStyle=billGrad;
-    // Upper bill
-    ctx.beginPath();ctx.moveTo(15,-12);ctx.quadraticCurveTo(29,-10,27,-5);ctx.lineTo(15,-6);ctx.closePath();ctx.fill();
-    // Lower bill
-    ctx.fillStyle='#C05000';
-    ctx.beginPath();ctx.moveTo(15,-6);ctx.lineTo(27,-5);ctx.quadraticCurveTo(25,-2,15,-4);ctx.closePath();ctx.fill();
-    // Bill edge
-    ctx.strokeStyle='#7A3000';ctx.lineWidth=0.9;
-    ctx.beginPath();ctx.moveTo(15,-12);ctx.quadraticCurveTo(29,-10,27,-5);ctx.lineTo(15,-4);ctx.stroke();
-    ctx.restore();
-  }
-  _drawEye(ctx){
-    ctx.save();ctx.translate(10,-14);
-    // Sclera
-    ctx.fillStyle='white';ctx.beginPath();ctx.arc(0,0,4.5,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=0.7;ctx.stroke();
-    // Iris (blue)
-    ctx.fillStyle='#2979FF';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();
-    // Pupil (tracks aim direction)
-    const px=Math.cos(this.facing)*1.2,py=Math.sin(this.facing)*1.2;
-    ctx.fillStyle='#080808';ctx.beginPath();ctx.arc(px,py,1.9,0,Math.PI*2);ctx.fill();
-    // Glint
-    ctx.fillStyle='rgba(255,255,255,0.82)';ctx.beginPath();ctx.arc(px-0.7,py-0.8,0.85,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
-  // Webbed feet — visible only when not squishing (idle/walk)
-  _drawFeet(ctx){
-    if(this.squishTimer>0)return;
-    ctx.save();ctx.globalAlpha=0.85;
-    const wobble=Math.sin(this.time*8)*3;
-    // Left foot
-    ctx.fillStyle='#E65100';ctx.strokeStyle='#7A3000';ctx.lineWidth=0.7;
-    ctx.save();ctx.translate(-6,13+Math.abs(wobble)*0.4);
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-5,4);ctx.quadraticCurveTo(-7,7,-3,6);ctx.lineTo(0,3);ctx.lineTo(3,6);ctx.quadraticCurveTo(7,7,5,4);ctx.lineTo(0,0);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.restore();
-    // Right foot
-    ctx.save();ctx.translate(4,13-Math.abs(wobble)*0.4);
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-5,4);ctx.quadraticCurveTo(-7,7,-3,6);ctx.lineTo(0,3);ctx.lineTo(3,6);ctx.quadraticCurveTo(7,7,5,4);ctx.lineTo(0,0);ctx.closePath();ctx.fill();ctx.stroke();
-    ctx.restore();
-    ctx.restore();
-  }
   get accessoryLevel(){
     const s=this.score||0,w=this.waveNumber||0;
     if(s>=1500&&w>=8)return 5;
@@ -1576,8 +1510,12 @@ class Game {
     if(!CONFIG.LEADERBOARD_URL||this.scoreSubmitted||!this.playerName||this.score<=0)return;
     this.submittingScore=true;
     try{
-      await fetch(CONFIG.LEADERBOARD_URL+'.json',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:this.playerName,score:this.score,wave:this.waves.wave,lang:this.lang,ts:new Date().toISOString()})});
+      // Works with both PHP api.php and Firebase .json endpoints
+      const url=CONFIG.LEADERBOARD_URL.endsWith('.json')?CONFIG.LEADERBOARD_URL:CONFIG.LEADERBOARD_URL;
+      const endpoint=CONFIG.LEADERBOARD_URL.includes('firebaseio')?url+'.json':url;
+      await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:this.playerName,score:this.score,wave:this.waves.wave,
+          lang:this.lang,touch:this._isTouchDevice()})});
       this.scoreSubmitted=true;
     }catch(e){}
     this.submittingScore=false;await this._fetchLeaderboard();
@@ -1585,9 +1523,19 @@ class Game {
   async _fetchLeaderboard(){
     if(!CONFIG.LEADERBOARD_URL)return;
     try{
-      const r=await fetch(CONFIG.LEADERBOARD_URL+'.json?orderBy="score"&limitToLast=20');
+      const isFirebase=CONFIG.LEADERBOARD_URL.includes('firebaseio');
+      const url=isFirebase
+        ?CONFIG.LEADERBOARD_URL+'.json?orderBy="score"&limitToLast=20'
+        :CONFIG.LEADERBOARD_URL+'?limit=20';
+      const r=await fetch(url);
       const data=await r.json();
-      if(data&&typeof data==='object')this.leaderboard=Object.values(data).sort((a,b)=>b.score-a.score).slice(0,20);
+      if(data&&Array.isArray(data)){
+        // PHP returns array directly
+        this.leaderboard=data.sort((a,b)=>b.score-a.score).slice(0,20);
+      } else if(data&&typeof data==='object'){
+        // Firebase returns object
+        this.leaderboard=Object.values(data).sort((a,b)=>b.score-a.score).slice(0,20);
+      }
     }catch(e){}
   }
 
@@ -1852,13 +1800,15 @@ class Game {
       localStorage.setItem('bugSquasher_gseClicks', n);
     } catch(e) {}
 
-    // Send to Firebase if configured (fire-and-forget)
+    // Send to backend if configured (works with PHP api.php or Firebase)
     if (CONFIG.CLICK_COUNTER_URL) {
       try {
-        await fetch(CONFIG.CLICK_COUNTER_URL + '.json', {
+        const isFirebase = CONFIG.CLICK_COUNTER_URL.includes('firebaseio');
+        const url = isFirebase ? CONFIG.CLICK_COUNTER_URL + '.json' : CONFIG.CLICK_COUNTER_URL;
+        await fetch(url, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(entry),
+          body: JSON.stringify({source:'footer', lang: this.lang}),
         });
       } catch(e) { /* offline — already saved locally */ }
     }
@@ -2071,6 +2021,10 @@ class Game {
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillStyle=CONFIG.COLORS.textSec;ctx.font=F(12);
       ctx.fillText(T('intro_cta'),cx,cy+106);
+      // Subtitle tagline — the conceptual hook, visible on intro
+      ctx.globalAlpha=ctaAlpha*0.65;
+      ctx.fillStyle=CONFIG.COLORS.gold;ctx.font=F(11);
+      ctx.fillText(T('subtitle'),cx,cy+126);
       ctx.restore();
     }
 
