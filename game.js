@@ -975,87 +975,60 @@ class Spider extends Entity {
   }
   draw(ctx){
     ctx.save();ctx.translate(this.x,this.y);
+    ctx.scale(1.8,1.8); // larger for readability
     const fa=Math.atan2(this.vy,this.vx);
     const bounce=Math.sin(this.legPhase*2)*1.2;
+    const skin=this.skinTone;
     const fwdX=Math.cos(fa),fwdY=Math.sin(fa);
     const perpX=Math.cos(fa+Math.PI/2),perpY=Math.sin(fa+Math.PI/2);
-    const skin=this.skinTone;
 
-    // --- Body (cardigan with gradient) ---
-    const bodyGrad=ctx.createRadialGradient(-2,2+bounce,1,-2,2+bounce,10);
-    bodyGrad.addColorStop(0,'#B09A78');bodyGrad.addColorStop(1,'#6B5335');
-    ctx.fillStyle=bodyGrad;
-    ctx.beginPath();ctx.ellipse(0,4+bounce,10,8,0,0,Math.PI*2);ctx.fill();
-    // Cardigan pattern: thin vertical stripes
-    ctx.save();ctx.clip();
-    ctx.strokeStyle='rgba(90,60,30,0.35)';ctx.lineWidth=1.2;
-    for(let sx=-8;sx<=8;sx+=4){ctx.beginPath();ctx.moveTo(sx,0+bounce);ctx.lineTo(sx,12+bounce);ctx.stroke();}
-    ctx.restore();
-    ctx.strokeStyle='#5A4025';ctx.lineWidth=1.2;
-    ctx.beginPath();ctx.ellipse(0,4+bounce,10,8,0,0,Math.PI*2);ctx.stroke();
+    // Body — solid cardigan
+    ctx.fillStyle='#8B7355';ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(0,4+bounce,9,7,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // Cardigan button line
+    ctx.strokeStyle='#5A4025';ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(0,0+bounce);ctx.lineTo(0,10+bounce);ctx.stroke();
 
-    // --- Head with radial gradient (3D feel) ---
-    const hx=0,hy=-6+bounce;
-    const headGrad=ctx.createRadialGradient(hx-2,hy-2,1,hx,hy,8);
-    headGrad.addColorStop(0,_lighten(skin,0.28));headGrad.addColorStop(0.65,skin);headGrad.addColorStop(1,_darken(skin,0.18));
-    ctx.fillStyle=headGrad;
-    ctx.beginPath();ctx.arc(hx,hy,8,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,0.18)';ctx.lineWidth=0.8;ctx.stroke();
+    // Head — solid skin tone, big enough to read
+    ctx.fillStyle=skin;ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(0,-6+bounce,8,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // Highlight dot
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.arc(-3,-10+bounce,2,0,Math.PI*2);ctx.fill();
 
-    // Wrinkles on forehead (2 short arcs)
-    ctx.save();ctx.strokeStyle='rgba(0,0,0,0.22)';ctx.lineWidth=0.9;ctx.lineCap='round';
-    ctx.beginPath();ctx.arc(-2,hy-3.5,2.5,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
-    ctx.beginPath();ctx.arc(2,hy-1.8,2.5,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
-    ctx.restore();
-
-    // Specular highlight on head
-    ctx.save();ctx.fillStyle='rgba(255,255,255,0.38)';
-    ctx.beginPath();ctx.arc(hx-3,hy-4,2.2,0,Math.PI*2);ctx.fill();ctx.restore();
-
-    // Hair wisps
-    ctx.strokeStyle='#DCDCDC';ctx.lineWidth=2.4;ctx.lineCap='round';
-    for(let i=-1;i<=1;i++){ctx.beginPath();ctx.arc(i*3.8,hy-7,3.8,Math.PI*1.05,Math.PI*1.95);ctx.stroke();}
+    // White hair wisps
+    ctx.strokeStyle='#E0E0E0';ctx.lineWidth=2.5;ctx.lineCap='round';
+    for(let i=-1;i<=1;i++){ctx.beginPath();ctx.arc(i*4,-14+bounce,4,Math.PI*1.05,Math.PI*1.95);ctx.stroke();}
     ctx.lineCap='butt';
 
-    // Glasses
-    ctx.strokeStyle='#444';ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(-3,hy,2.2,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.arc(3,hy,2.2,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-0.8,hy);ctx.lineTo(0.8,hy);ctx.stroke();
-    // Eyeballs behind glasses
-    ctx.fillStyle='#2A1A0A';
-    ctx.beginPath();ctx.arc(-3,hy,1.1,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(3,hy,1.1,0,Math.PI*2);ctx.fill();
+    // Glasses — thick dark frames for readability
+    ctx.strokeStyle='#222';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.arc(-3,-6+bounce,2.5,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(3,-6+bounce,2.5,0,Math.PI*2);ctx.stroke();
+    ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(-0.5,-6+bounce);ctx.lineTo(0.5,-6+bounce);ctx.stroke();
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-3,-6+bounce,1.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(3,-6+bounce,1.2,0,Math.PI*2);ctx.fill();
 
-    // Expressive eyebrows (gentle arch, old-man drooping)
+    // Eyebrows
     ctx.strokeStyle='#888';ctx.lineWidth=1.4;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(-5.5,hy-3.5);ctx.quadraticCurveTo(-3,hy-5.5,-0.5,hy-3.8);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(5.5,hy-3.5);ctx.quadraticCurveTo(3,hy-5.5,0.5,hy-3.8);ctx.stroke();
-
-    // Mouth (slight neutral open)
-    ctx.strokeStyle='rgba(80,30,10,0.7)';ctx.lineWidth=1.1;
-    ctx.beginPath();ctx.arc(0,hy+3.5,2,0.1,Math.PI-0.1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-5.5,-9.5+bounce);ctx.lineTo(-0.5,-8+bounce);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(5.5,-9.5+bounce);ctx.lineTo(0.5,-8+bounce);ctx.stroke();
+    ctx.lineCap='butt';
 
     // Arms
-    ctx.strokeStyle=skin;ctx.lineWidth=2.4;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(perpX*8,perpY*8+bounce);ctx.lineTo(perpX*8+fwdX*8,perpY*8+fwdY*8+bounce*0.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-perpX*8,-perpY*8+bounce);ctx.lineTo(-perpX*8+fwdX*8,-perpY*8+fwdY*8+bounce*0.5);ctx.stroke();
+    ctx.strokeStyle=skin;ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(perpX*8,perpY*8+bounce);ctx.lineTo(perpX*8+fwdX*7,perpY*8+fwdY*7+bounce*0.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-perpX*8,-perpY*8+bounce);ctx.lineTo(-perpX*8+fwdX*7,-perpY*8+fwdY*7+bounce*0.5);ctx.stroke();
     ctx.lineCap='butt';
 
-    // Walker (Option A: gradient aluminum with wider arc)
-    ctx.save();ctx.translate(fwdX*13,fwdY*13+bounce*0.4);ctx.rotate(fa-Math.PI/2);
-    const wkGrad=ctx.createLinearGradient(-10,-10,10,4);
-    wkGrad.addColorStop(0,'#D0E8F0');wkGrad.addColorStop(0.5,'#A0C8D8');wkGrad.addColorStop(1,'#607890');
-    ctx.strokeStyle=wkGrad;ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
-    const wW=10,wH=9;
+    // Walker — solid silver, no gradients
+    ctx.save();ctx.translate(fwdX*12,fwdY*12+bounce*0.4);ctx.rotate(fa-Math.PI/2);
+    ctx.strokeStyle='#A0B8C0';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
+    const wW=9,wH=8;
     ctx.beginPath();ctx.moveTo(-wW,-wH);ctx.lineTo(-wW,2);ctx.arc(0,2,wW,Math.PI,0);ctx.lineTo(wW,-wH);ctx.stroke();
     ctx.beginPath();ctx.moveTo(-wW,-wH);ctx.lineTo(wW,-wH);ctx.stroke();
-    ctx.lineWidth=1.6;
-    const ll=4+Math.abs(Math.sin(this.legPhase))*2;
-    for(const lx of[-wW,wW]){
-      ctx.beginPath();ctx.moveTo(lx,2);ctx.lineTo(lx,2+ll);ctx.stroke();
-      ctx.fillStyle='#444';ctx.beginPath();ctx.ellipse(lx,2+ll+1.2,2.2,1.2,0,0,Math.PI*2);ctx.fill();
-    }
+    ctx.lineWidth=1.4;
+    const ll=3.5+Math.abs(Math.sin(this.legPhase))*1.8;
+    for(const lx of[-wW,wW]){ctx.beginPath();ctx.moveTo(lx,2);ctx.lineTo(lx,2+ll);ctx.stroke();}
     ctx.restore();
     ctx.restore();
   }
@@ -1088,91 +1061,53 @@ class Snake extends Entity {
     ctx.save();ctx.translate(this.x,this.y);
     ctx.rotate(this.baseAngle);
     ctx.rotate(Math.sin(this.sinePhase)*0.2);
+    ctx.scale(1.8,1.8); // larger for readability
     const skin=this.skinTone;
     const speed=Math.abs(Math.cos(this.sinePhase));
 
     // Speed lines
     if(speed>0.55){
       ctx.save();ctx.lineCap='round';
-      for(let i=0;i<3;i++){ctx.globalAlpha=0.12+i*0.07;ctx.strokeStyle='#FFFFFF';ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(-10-i*3,(i-1)*3.5);ctx.lineTo(-16-i*3,(i-1)*3.5);ctx.stroke();}
+      for(let i=0;i<3;i++){ctx.globalAlpha=0.15+i*0.08;ctx.strokeStyle='#FFF';ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(-10-i*3,(i-1)*3.5);ctx.lineTo(-16-i*3,(i-1)*3.5);ctx.stroke();}
       ctx.restore();
     }
 
-    // --- Wheels (using shared _drawWheel helper) ---
+    // Wheels
     _drawWheel(ctx,-8,5,4);_drawWheel(ctx,8,5,4);
 
-    // --- Scooter body with gradient + polka dots ---
-    const scootGrad=ctx.createLinearGradient(-10,-2,10,7);
-    scootGrad.addColorStop(0,'#F8BBD0');scootGrad.addColorStop(1,'#E57399');
-    ctx.fillStyle=scootGrad;ctx.strokeStyle='#C2185B';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(-7,-1);ctx.lineTo(7,-1);ctx.arcTo(10,-1,10,2,3);ctx.lineTo(10,3);ctx.arcTo(10,6,7,6,3);ctx.lineTo(-7,6);ctx.arcTo(-10,6,-10,3,3);ctx.lineTo(-10,2);ctx.arcTo(-10,-1,-7,-1,3);ctx.closePath();ctx.fill();ctx.stroke();
-    // Polka dots on scooter body
-    ctx.save();ctx.clip();
-    ctx.fillStyle='rgba(255,255,255,0.35)';
-    const dots=[[-6,2],[-2,1],[2,4],[6,2],[0,-0.5],[4,-0.2],[-4,5]];
-    for(const[dx,dy]of dots){ctx.beginPath();ctx.arc(dx,dy,1.1,0,Math.PI*2);ctx.fill();}
-    ctx.restore();
-
-    // Handlebars
-    ctx.strokeStyle='#B0BEC5';ctx.lineWidth=1.3;ctx.lineCap='round';
+    // Scooter body — solid pink
+    ctx.fillStyle='#F48FB1';ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.arcTo(10,0,10,3,3);ctx.lineTo(10,4);ctx.arcTo(10,7,7,7,3);ctx.lineTo(-7,7);ctx.arcTo(-10,7,-10,4,3);ctx.lineTo(-10,3);ctx.arcTo(-10,0,-7,0,3);ctx.closePath();ctx.fill();ctx.stroke();
+    // Handlebar
+    ctx.strokeStyle='#9E9E9E';ctx.lineWidth=1.3;ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(6,-1);ctx.lineTo(6,-5.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(4,-5.5);ctx.lineTo(8.5,-5.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(3.5,-5.5);ctx.lineTo(8.5,-5.5);ctx.stroke();
     ctx.lineCap='butt';
 
-    // --- Nightgown body with gradient ---
-    const bodyGrad=ctx.createLinearGradient(-4,-9,4,1);
-    bodyGrad.addColorStop(0,'#9575CD');bodyGrad.addColorStop(1,'#512DA8');
-    ctx.fillStyle=bodyGrad;
-    ctx.beginPath();ctx.ellipse(-1,-4,4.5,5.5,0,0,Math.PI*2);ctx.fill();
-    // Small cross pattern on nightgown
-    ctx.save();ctx.clip();ctx.strokeStyle='rgba(255,255,255,0.28)';ctx.lineWidth=0.7;
-    for(let gx=-4;gx<=2;gx+=3){for(let gy=-9;gy<=0;gy+=3){ctx.beginPath();ctx.moveTo(gx,gy-1);ctx.lineTo(gx,gy+1);ctx.stroke();ctx.beginPath();ctx.moveTo(gx-1,gy);ctx.lineTo(gx+1,gy);ctx.stroke();}}
-    ctx.restore();
-
+    // Body — solid purple
+    ctx.fillStyle='#7B1FA2';ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(-1,-4,5,6,0,0,Math.PI*2);ctx.fill();ctx.stroke();
     // Arms
     ctx.strokeStyle=skin;ctx.lineWidth=1.4;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(2,-4);ctx.quadraticCurveTo(5.5,-4.5,6,-5.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-3,-4);ctx.quadraticCurveTo(-0.5,-5.5,4.5,-5.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(2,-4);ctx.quadraticCurveTo(5,-4,6,-5.5);ctx.stroke();
     ctx.lineCap='butt';
 
-    // --- Head with radial gradient ---
-    const hx=-1,hy=-12;
-    const headGrad=ctx.createRadialGradient(hx-1.5,hy-1.5,0.5,hx,hy,4.8);
-    headGrad.addColorStop(0,_lighten(skin,0.3));headGrad.addColorStop(0.6,skin);headGrad.addColorStop(1,_darken(skin,0.2));
-    ctx.fillStyle=headGrad;ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=0.6;
-    ctx.beginPath();ctx.arc(hx,hy,4.8,0,Math.PI*2);ctx.fill();ctx.stroke();
-    // Specular highlight
-    ctx.fillStyle='rgba(255,255,255,0.42)';ctx.beginPath();ctx.arc(hx-1.5,hy-1.8,1.4,0,Math.PI*2);ctx.fill();
+    // Head — solid skin
+    ctx.fillStyle=skin;ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(-1,-12,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(-2.5,-14,1.5,0,Math.PI*2);ctx.fill();
 
-    // --- Hair bun with gradient ---
-    const bunGrad=ctx.createRadialGradient(hx-2.5,hy-4,0.5,hx-2.5,hy-4,2.8);
-    bunGrad.addColorStop(0,'#EEEEEE');bunGrad.addColorStop(1,'#9E9E9E');
-    ctx.fillStyle=bunGrad;ctx.strokeStyle='rgba(0,0,0,0.15)';ctx.lineWidth=0.5;
-    ctx.beginPath();ctx.arc(hx-2.5,hy-4,2.8,0,Math.PI*2);ctx.fill();ctx.stroke();
-    // Bun pin
-    ctx.strokeStyle='#FF8A80';ctx.lineWidth=0.8;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(hx-4,hy-5.5);ctx.lineTo(hx-0.5,hy-3);ctx.stroke();
+    // Hair bun — solid white
+    ctx.fillStyle='#EEEEEE';ctx.strokeStyle='#888';ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.arc(-3.5,-16.5,3,0,Math.PI*2);ctx.fill();ctx.stroke();
+
+    // Gold glasses
+    ctx.strokeStyle='#FFC107';ctx.lineWidth=1;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(-3,-12,2,Math.PI*0.8,Math.PI*2.2);ctx.stroke();
+    ctx.beginPath();ctx.arc(0.5,-12,2,Math.PI*0.8,Math.PI*2.2);ctx.stroke();
     ctx.lineCap='butt';
-
-    // Glasses (gold frames)
-    ctx.strokeStyle='#FFD54F';ctx.lineWidth=0.8;
-    ctx.beginPath();ctx.arc(hx-2.2,hy,1.7,Math.PI*0.9,Math.PI*2.1);ctx.stroke();
-    ctx.beginPath();ctx.arc(hx+0.8,hy,1.7,Math.PI*0.9,Math.PI*2.1);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hx-0.5,hy);ctx.lineTo(hx-0.2,hy);ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#2A1A0A';
-    ctx.beginPath();ctx.arc(hx-2.2,hy,0.9,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(hx+0.8,hy,0.9,0,Math.PI*2);ctx.fill();
-
-    // Expressive eyebrows (raised in surprise)
-    ctx.strokeStyle='#888';ctx.lineWidth=1;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(hx-4,hy-2.8);ctx.quadraticCurveTo(hx-2.2,hy-4.5,hx-0.5,hy-2.8);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hx+0,hy-2.8);ctx.quadraticCurveTo(hx+0.8,hy-4.2,hx+2.2,hy-2.6);ctx.stroke();
-    ctx.lineCap='butt';
-
-    // Happy mouth curve
-    ctx.strokeStyle='rgba(80,30,10,0.65)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(hx,hy+2.2,2,Math.PI*0.1,Math.PI*0.9);ctx.stroke();
+    ctx.fillStyle='#222';ctx.beginPath();ctx.arc(-3,-12,0.9,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(0.5,-12,0.9,0,Math.PI*2);ctx.fill();
 
     ctx.restore();
   }
@@ -1210,111 +1145,68 @@ class Octopus extends Entity {
   }
   draw(ctx){
     ctx.save();ctx.translate(this.x,this.y);
+    ctx.scale(1.8,1.8); // larger for readability
     const skin=this.skinTone;
     const activeSkin=this.charging?blendRed(skin,0.28):skin;
     const amp=this.charging?15:9;
 
-    // --- 8 flailing arms (gradient base to tip) ---
+    // 6 flailing arms — no gradients
     ctx.lineCap='round';
-    for(let i=0;i<8;i++){
-      const a=(i/8)*Math.PI*2;
-      const w=Math.sin(this.tentaclePhase+i*0.78)*amp;
-      const cpx=Math.cos(a+0.4)*20+w,cpy=Math.sin(a+0.4)*20;
-      const epx=Math.cos(a)*30,epy=Math.sin(a)*30;
-      const armGrad=ctx.createLinearGradient(0,0,epx,epy);
-      armGrad.addColorStop(0,_darken(activeSkin,0.1));armGrad.addColorStop(1,_lighten(activeSkin,0.15));
-      ctx.strokeStyle=armGrad;ctx.lineWidth=3.2-i*0.12;
-      ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(cpx,cpy,epx,epy);ctx.stroke();
-      // Sucker dots on some arms
-      if(i%2===0){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(epx*0.6,epy*0.6,1.1,0,Math.PI*2);ctx.fill();}
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2;
+      const w=Math.sin(this.tentaclePhase+i*1.05)*amp;
+      ctx.strokeStyle=activeSkin;ctx.lineWidth=3.5-i*0.2;
+      ctx.beginPath();ctx.moveTo(0,4);
+      ctx.quadraticCurveTo(Math.cos(a+0.5)*16+w,Math.sin(a+0.5)*16,Math.cos(a)*24,Math.sin(a)*24);ctx.stroke();
     }
     ctx.lineCap='butt';
 
-    // --- Wooden cane on arm 1 ---
-    const cX=Math.cos((1/8)*Math.PI*2)*28,cY=Math.sin((1/8)*Math.PI*2)*28;
-    const caneGrad=ctx.createLinearGradient(cX,cY,cX+3,cY+16);
-    caneGrad.addColorStop(0,'#A1887F');caneGrad.addColorStop(1,'#4E342E');
-    ctx.strokeStyle=caneGrad;ctx.lineWidth=2.8;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(cX,cY);ctx.lineTo(cX+3,cY+17);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cX,cY);ctx.quadraticCurveTo(cX+9,cY-8,cX+5.5,cY-1);ctx.stroke();
+    // Cane
+    const cA=(1/6)*Math.PI*2,cX=Math.cos(cA)*22,cY=Math.sin(cA)*22;
+    ctx.strokeStyle='#6D4C41';ctx.lineWidth=2.8;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(cX,cY);ctx.lineTo(cX+3,cY+14);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cX,cY);ctx.quadraticCurveTo(cX+8,cY-7,cX+5,cY);ctx.stroke();
     ctx.lineCap='butt';
 
-    // --- Body with radial gradient (3D sphere feel) ---
-    const bodyGrad=ctx.createRadialGradient(-3,1,2,-3,1,16);
-    bodyGrad.addColorStop(0,_lighten(activeSkin,0.3));bodyGrad.addColorStop(0.55,activeSkin);bodyGrad.addColorStop(1,_darken(activeSkin,0.22));
-    ctx.fillStyle=bodyGrad;ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=6;
-    ctx.beginPath();ctx.arc(0,4,15,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    // Body — solid skin
+    ctx.fillStyle=activeSkin;ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(0,4,13,0,Math.PI*2);ctx.fill();ctx.stroke();
 
-    // --- Brown vest with gradient ---
-    const vestGrad=ctx.createLinearGradient(-9,-2,9,14);
-    vestGrad.addColorStop(0,'#795548');vestGrad.addColorStop(1,'#3E2723');
-    ctx.fillStyle=vestGrad;
-    ctx.beginPath();ctx.ellipse(0,6,9.5,11.5,0,0,Math.PI*2);ctx.fill();
-    // Vest lapels
-    ctx.fillStyle='#3E2723';
-    ctx.beginPath();ctx.moveTo(-3,-2);ctx.lineTo(-8,7);ctx.lineTo(0,5);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(3,-2);ctx.lineTo(8,7);ctx.lineTo(0,5);ctx.closePath();ctx.fill();
-    // Vest buttons
-    ctx.fillStyle='#8D6E63';
-    for(const by of[2,6,10]){ctx.beginPath();ctx.arc(0,by,1.2,0,Math.PI*2);ctx.fill();}
+    // Vest — solid brown
+    ctx.fillStyle='#5D4037';ctx.beginPath();ctx.ellipse(0,6,9,11,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4E342E';
+    ctx.beginPath();ctx.moveTo(-2,-1);ctx.lineTo(-8,6);ctx.lineTo(0,5);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(2,-1);ctx.lineTo(8,6);ctx.lineTo(0,5);ctx.closePath();ctx.fill();
 
-    // --- Head with radial gradient ---
-    const hx=0,hy=-14;
-    const headGrad=ctx.createRadialGradient(hx-3,hy-3,1.5,hx,hy,11);
-    headGrad.addColorStop(0,_lighten(activeSkin,0.32));headGrad.addColorStop(0.6,activeSkin);headGrad.addColorStop(1,_darken(activeSkin,0.2));
-    ctx.fillStyle=headGrad;
-    ctx.beginPath();ctx.arc(hx,hy,11,0,Math.PI*2);ctx.fill();
-    // Specular highlight
-    ctx.fillStyle='rgba(255,255,255,0.36)';ctx.beginPath();ctx.arc(hx-4,hy-4,2.8,0,Math.PI*2);ctx.fill();
+    // Head — solid skin
+    ctx.fillStyle=activeSkin;ctx.strokeStyle='#1A1A1A';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(0,-13,9,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.arc(-3,-17,2.5,0,Math.PI*2);ctx.fill();
 
-    // Forehead wrinkles
-    ctx.save();ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1;ctx.lineCap='round';
-    ctx.beginPath();ctx.arc(-3,hy-4,3.5,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
-    ctx.beginPath();ctx.arc(3,hy-2.5,3.5,Math.PI*1.1,Math.PI*1.9);ctx.stroke();
-    ctx.beginPath();ctx.arc(-1,hy-0.5,4,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
-    ctx.restore();
-
-    // Bald head + side wisps
-    ctx.strokeStyle='#F5F5F5';ctx.lineWidth=2.2;ctx.lineCap='round';
-    ctx.beginPath();ctx.arc(hx-9,hy-4,4,Math.PI*1.1,Math.PI*1.65);ctx.stroke();
-    ctx.beginPath();ctx.arc(hx+9,hy-4,4,Math.PI*1.35,Math.PI*1.9);ctx.stroke();
+    // White wisps
+    ctx.strokeStyle='#E0E0E0';ctx.lineWidth=2.2;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(-8,-14,4,Math.PI*1.1,Math.PI*1.75);ctx.stroke();
+    ctx.beginPath();ctx.arc(8,-14,4,Math.PI*1.25,Math.PI*1.9);ctx.stroke();
     ctx.lineCap='butt';
 
-    // Eyes (larger, with sclera)
-    ctx.fillStyle='#FAFAFA';
-    ctx.beginPath();ctx.ellipse(hx-3.8,hy-0.5,2.2,2.8,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(hx+3.8,hy-0.5,2.2,2.8,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#3A2010';
-    ctx.beginPath();ctx.arc(hx-3.8,hy-0.5,1.5,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(hx+3.8,hy-0.5,1.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.beginPath();ctx.arc(hx-4.5,hy-1.5,0.55,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(hx+3.1,hy-1.5,0.55,0,Math.PI*2);ctx.fill();
-
-    // Eyebrows — strongly V-shaped when charging, heavy droop when calm
-    ctx.strokeStyle='#5D4037';ctx.lineWidth=2;ctx.lineCap='round';
+    // Eyes + brows
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-3,-13,1.8,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(3,-13,1.8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=this.charging?'#FF1111':'#5D4037';ctx.lineWidth=2;ctx.lineCap='round';
     if(this.charging){
-      ctx.beginPath();ctx.moveTo(hx-7,hy-6);ctx.quadraticCurveTo(hx-4,hy-4,hx-1,hy-5.5);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(hx+7,hy-6);ctx.quadraticCurveTo(hx+4,hy-4,hx+1,hy-5.5);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-6,-17);ctx.lineTo(-2,-15);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(6,-17);ctx.lineTo(2,-15);ctx.stroke();
     } else {
-      ctx.beginPath();ctx.moveTo(hx-7,hy-5);ctx.quadraticCurveTo(hx-4,hy-6.5,hx-1,hy-5.2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(hx+7,hy-5);ctx.quadraticCurveTo(hx+4,hy-6.5,hx+1,hy-5.2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-6,-16.5);ctx.lineTo(-1.5,-16.5);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(6,-16.5);ctx.lineTo(1.5,-16.5);ctx.stroke();
     }
     ctx.lineCap='butt';
+    ctx.strokeStyle='#5D4037';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.arc(0,-9.5,3,0,Math.PI,false);ctx.stroke();
 
-    // Frown (deeper when charging)
-    ctx.strokeStyle='rgba(80,30,10,0.8)';ctx.lineWidth=1.8;ctx.lineCap='round';
     if(this.charging){
-      ctx.beginPath();ctx.arc(hx,hy+5,4.5,Math.PI*0.15,Math.PI*0.85,true);ctx.stroke();
-    } else {
-      ctx.beginPath();ctx.arc(hx,hy+4,3.5,Math.PI*0.1,Math.PI*0.9,true);ctx.stroke();
-    }
-    ctx.lineCap='butt';
-
-    // Charge glow ring
-    if(this.charging){
-      ctx.save();ctx.globalAlpha=0.55;ctx.strokeStyle='#FF6D00';ctx.lineWidth=2.2;ctx.shadowColor='#FF6D00';ctx.shadowBlur=10;
-      ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;ctx.restore();
+      ctx.save();ctx.globalAlpha=0.5;ctx.strokeStyle='#FF6B35';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);ctx.stroke();ctx.restore();
     }
     ctx.restore();
   }
@@ -1339,90 +1231,44 @@ class Ghost extends Entity {
   }
   draw(ctx){
     ctx.save();ctx.translate(this.x,this.y);
+    ctx.scale(1.8,1.8); // larger for readability
     const pulse=0.5+0.5*Math.sin(this.floatPhase*2);
     const bob=Math.sin(this.floatPhase)*5;
     ctx.translate(0,bob);
+    ctx.globalAlpha=0.65;
+    ctx.shadowColor='#FAFAFA';ctx.shadowBlur=10+pulse*8;
 
-    // Ghost glow aura
-    ctx.save();ctx.globalAlpha=0.18+pulse*0.15;ctx.shadowColor='#B3E5FC';ctx.shadowBlur=18+pulse*12;
-    ctx.fillStyle='#B3E5FC';ctx.beginPath();ctx.arc(0,-5,17,0,Math.PI*2);ctx.fill();
-    ctx.shadowBlur=0;ctx.restore();
+    // Nightgown silhouette — solid cream
+    ctx.fillStyle='#FAFAFA';ctx.strokeStyle='rgba(180,200,240,0.6)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(0,-4,13,Math.PI,0);
+    for(let i=0;i<=6;i++)ctx.lineTo(-13+(i/6)*26,9+Math.sin(i*Math.PI+this.floatPhase*2.5)*4);
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
 
-    ctx.globalAlpha=0.62+pulse*0.12;
+    // Arms
+    ctx.strokeStyle='#EEEEEE';ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-12,-1);ctx.quadraticCurveTo(-20,-7,-23,-3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(12,-1);ctx.quadraticCurveTo(20,-7,23,-3);ctx.stroke();
 
-    // --- Nightgown silhouette with gradient ---
-    const gownGrad=ctx.createLinearGradient(-14,-5,14,12);
-    gownGrad.addColorStop(0,'#FAFAFA');gownGrad.addColorStop(0.6,'#E8F5E9');gownGrad.addColorStop(1,'rgba(200,240,255,0.6)');
-    ctx.fillStyle=gownGrad;
-    ctx.beginPath();ctx.arc(0,-5,15,Math.PI,0);
-    for(let i=0;i<=7;i++)ctx.lineTo(-15+(i/7)*30,10+Math.sin(i*Math.PI+this.floatPhase*2.5)*5);
-    ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(180,220,240,0.6)';ctx.lineWidth=1;ctx.stroke();
+    // Head — solid skin
+    ctx.shadowColor='#FAFAFA';ctx.shadowBlur=8;
+    ctx.fillStyle=this.skinTone;ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.arc(0,-18,9,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
 
-    // Small cross/flower pattern on nightgown
-    ctx.save();ctx.globalAlpha=0.3;ctx.strokeStyle='#B3E5FC';ctx.lineWidth=0.85;ctx.lineCap='round';
-    const crossPts=[[-7,-1],[-3,2],[2,-2],[6,1],[-5,5],[1,6],[7,4],[-9,4]];
-    for(const[cx,cy]of crossPts){
-      ctx.beginPath();ctx.moveTo(cx,cy-1.8);ctx.lineTo(cx,cy+1.8);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(cx-1.8,cy);ctx.lineTo(cx+1.8,cy);ctx.stroke();
-    }
-    ctx.lineCap='butt';ctx.restore();
+    // Pink curlers — 4 circles
+    ctx.fillStyle='#FF9FC0';ctx.strokeStyle='#E0608A';ctx.lineWidth=0.8;
+    for(const cx of[-7.5,-2.5,2.5,7.5]){ctx.beginPath();ctx.arc(cx,-26,2.5,0,Math.PI*2);ctx.fill();ctx.stroke();}
 
-    // --- Ghostly arms ---
-    ctx.strokeStyle='rgba(235,245,255,0.85)';ctx.lineWidth=3;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(-12,-2);ctx.quadraticCurveTo(-21,-9,-25,-4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(12,-2);ctx.quadraticCurveTo(21,-9,25,-4);ctx.stroke();
-    ctx.lineCap='butt';
+    // Eyes — big hollow ovals
+    ctx.globalAlpha=0.85;ctx.fillStyle='#1A1A2E';
+    ctx.beginPath();ctx.ellipse(-3.5,-18,3,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(3.5,-18,3,4,0,0,Math.PI*2);ctx.fill();
 
-    // --- Head with gradient (pale but warm skin) ---
-    const hx=0,hy=-19;
-    const headGrad=ctx.createRadialGradient(hx-2.5,hy-2.5,1,hx,hy,10);
-    headGrad.addColorStop(0,_lighten(this.skinTone,0.25));headGrad.addColorStop(0.55,this.skinTone);headGrad.addColorStop(1,_darken(this.skinTone,0.15));
-    ctx.fillStyle=headGrad;ctx.shadowColor='rgba(180,210,240,0.5)';ctx.shadowBlur=8;
-    ctx.beginPath();ctx.arc(hx,hy,10,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    // Specular highlight
-    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.beginPath();ctx.arc(hx-3.5,hy-3.5,2.5,0,Math.PI*2);ctx.fill();
+    // Surprised O mouth
+    ctx.beginPath();ctx.ellipse(0,-13,2.5,3,0,0,Math.PI*2);ctx.fill();
 
-    // --- Hair curlers (gradient cylinders) ---
-    const curlerPts=[-9,-4.5,0,4.5,9];
-    for(const cx of curlerPts){
-      const cg=ctx.createLinearGradient(cx,hy-26,cx,hy-20);
-      cg.addColorStop(0,'#ECEFF1');cg.addColorStop(1,'#B0BEC5');
-      ctx.fillStyle=cg;ctx.strokeStyle='rgba(0,0,0,0.15)';ctx.lineWidth=0.5;
-      ctx.beginPath();ctx.arc(cx,hy-24,2.8,0,Math.PI*2);ctx.fill();ctx.stroke();
-      // Curler clips
-      ctx.fillStyle='#EF9A9A';ctx.beginPath();ctx.rect(cx-1,hy-26.5,2,2);ctx.fill();
-    }
-
-    // Wide surprised eyes
-    ctx.globalAlpha=0.85;
-    ctx.fillStyle='#FAFAFA';
-    ctx.beginPath();ctx.ellipse(hx-4,hy,2.8,3.5,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(hx+4,hy,2.8,3.5,0,0,Math.PI*2);ctx.fill();
-    // Iris (pale blue-grey for ghostly feel)
-    ctx.fillStyle='#4FC3F7';
-    ctx.beginPath();ctx.ellipse(hx-4,hy+0.3,1.6,2,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(hx+4,hy+0.3,1.6,2,0,0,Math.PI*2);ctx.fill();
-    // Pupils
-    ctx.fillStyle='#1A1A2E';
-    ctx.beginPath();ctx.ellipse(hx-4,hy+0.5,0.9,1.2,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(hx+4,hy+0.5,0.9,1.2,0,0,Math.PI*2);ctx.fill();
-    // Eye glints
-    ctx.fillStyle='rgba(255,255,255,0.75)';
-    ctx.beginPath();ctx.arc(hx-5,hy-0.5,0.7,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(hx+3,hy-0.5,0.7,0,Math.PI*2);ctx.fill();
-
-    // Raised eyebrows (surprised)
-    ctx.strokeStyle='rgba(100,60,30,0.55)';ctx.lineWidth=1.3;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(hx-7,hy-5.5);ctx.quadraticCurveTo(hx-4,hy-8,hx-1,hy-5.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(hx+7,hy-5.5);ctx.quadraticCurveTo(hx+4,hy-8,hx+1,hy-5.5);ctx.stroke();
-    ctx.lineCap='butt';
-
-    // Open 'O' mouth (surprised)
-    ctx.strokeStyle='rgba(50,20,10,0.7)';ctx.fillStyle='rgba(60,20,10,0.5)';ctx.lineWidth=1.4;
-    ctx.beginPath();ctx.ellipse(hx,hy+5,3,3.8,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-
-    ctx.restore();
+    ctx.globalAlpha=1;ctx.restore();
   }
 }
 
