@@ -119,6 +119,11 @@ const STRINGS = {
     enemy_octopus: 'Grumpy Grandpa',
     enemy_ghost:   'Sleepwalking Granny',
     combo:         'BONUS',
+    new_hi:        'New High Score!',
+    best:          'Best',
+    restart_t:     'Tap to play again',
+    restart:       'Click or Space to play again',
+    goal_text:     'Defeat all enemies to advance!',
   },
   de: {
     subtitle:      'Rubber-Duck-Debugging - wörtlich genommen',
@@ -177,6 +182,7 @@ const STRINGS = {
     enemy_octopus: 'Grummeliger Opa',
     enemy_ghost:   'Schlafwandel-Oma',
     combo:         'BONUS',
+    goal_text:     'Besiege alle Feinde, um voranzukommen!',
   },
   fr: {
     subtitle:      'Débogage par canard - pris au pied de la lettre',
@@ -235,6 +241,7 @@ const STRINGS = {
     enemy_octopus: 'Papy grincheux',
     enemy_ghost:   'Mamie somnambule',
     combo:         'BONUS',
+    goal_text:     'Défaite tous les ennemis pour avancer !',
   },
   es: {
     subtitle:      'Depuración con pato - tomada literalmente',
@@ -293,6 +300,7 @@ const STRINGS = {
     enemy_octopus: 'Abuelo gruñón',
     enemy_ghost:   'Abuela sonámbula',
     combo:         'BONUS',
+    goal_text:     '¡Derrota a todos los enemigos para avanzar!',
   },
   ar: {
     subtitle:      'تنقيح البط المطاطي - حرفياً',
@@ -351,6 +359,7 @@ const STRINGS = {
     enemy_octopus: 'جد غاضب',
     enemy_ghost:   'جدة سائرة بالنوم',
     combo:         'BONUS',
+    goal_text:     'هزم جميع الأعداء للمضي قدماً!',
   },
 };
 
@@ -1033,17 +1042,20 @@ class Spider extends Entity {
     ctx.beginPath();ctx.moveTo(-perpX*8,-perpY*8+bounce);ctx.lineTo(-perpX*8+fwdX*8,-perpY*8+fwdY*8+bounce*0.5);ctx.stroke();
     ctx.lineCap='butt';
 
-    // Walker (aluminum, slight glow)
+    // Walker (Option A: gradient aluminum with wider arc)
     ctx.save();ctx.translate(fwdX*13,fwdY*13+bounce*0.4);ctx.rotate(fa-Math.PI/2);
-    const wkGrad=ctx.createLinearGradient(-9,-8,9,2);
-    wkGrad.addColorStop(0,'#D0E4EC');wkGrad.addColorStop(1,'#7AABB8');
-    ctx.strokeStyle=wkGrad;ctx.lineWidth=1.8;ctx.lineCap='round';
-    const wW=9,wH=8;
+    const wkGrad=ctx.createLinearGradient(-10,-10,10,4);
+    wkGrad.addColorStop(0,'#D0E8F0');wkGrad.addColorStop(0.5,'#A0C8D8');wkGrad.addColorStop(1,'#607890');
+    ctx.strokeStyle=wkGrad;ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
+    const wW=10,wH=9;
     ctx.beginPath();ctx.moveTo(-wW,-wH);ctx.lineTo(-wW,2);ctx.arc(0,2,wW,Math.PI,0);ctx.lineTo(wW,-wH);ctx.stroke();
     ctx.beginPath();ctx.moveTo(-wW,-wH);ctx.lineTo(wW,-wH);ctx.stroke();
-    ctx.lineWidth=1.3;
-    const ll=3.5+Math.abs(Math.sin(this.legPhase))*1.5;
-    for(const lx of[-wW,wW]){ctx.beginPath();ctx.moveTo(lx,2);ctx.lineTo(lx,2+ll);ctx.stroke();}
+    ctx.lineWidth=1.6;
+    const ll=4+Math.abs(Math.sin(this.legPhase))*2;
+    for(const lx of[-wW,wW]){
+      ctx.beginPath();ctx.moveTo(lx,2);ctx.lineTo(lx,2+ll);ctx.stroke();
+      ctx.fillStyle='#444';ctx.beginPath();ctx.ellipse(lx,2+ll+1.2,2.2,1.2,0,0,Math.PI*2);ctx.fill();
+    }
     ctx.restore();
     ctx.restore();
   }
@@ -1086,15 +1098,8 @@ class Snake extends Entity {
       ctx.restore();
     }
 
-    // --- Wheels with gradient ---
-    const _wheel=(wx,wy)=>{
-      const wg=ctx.createRadialGradient(wx-1,wy-1,0.5,wx,wy,3.8);
-      wg.addColorStop(0,'#607D8B');wg.addColorStop(1,'#263238');
-      ctx.fillStyle=wg;ctx.strokeStyle='#78909C';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(wx,wy,3.8,0,Math.PI*2);ctx.fill();ctx.stroke();
-      ctx.fillStyle='#B0BEC5';ctx.beginPath();ctx.arc(wx,wy,1.1,0,Math.PI*2);ctx.fill();
-    };
-    _wheel(-8,5);_wheel(8,5);
+    // --- Wheels (using shared _drawWheel helper) ---
+    _drawWheel(ctx,-8,5,4);_drawWheel(ctx,8,5,4);
 
     // --- Scooter body with gradient + polka dots ---
     const scootGrad=ctx.createLinearGradient(-10,-2,10,7);
@@ -1206,6 +1211,7 @@ class Octopus extends Entity {
   draw(ctx){
     ctx.save();ctx.translate(this.x,this.y);
     const skin=this.skinTone;
+    const activeSkin=this.charging?blendRed(skin,0.28):skin;
     const amp=this.charging?15:9;
 
     // --- 8 flailing arms (gradient base to tip) ---
@@ -1216,7 +1222,7 @@ class Octopus extends Entity {
       const cpx=Math.cos(a+0.4)*20+w,cpy=Math.sin(a+0.4)*20;
       const epx=Math.cos(a)*30,epy=Math.sin(a)*30;
       const armGrad=ctx.createLinearGradient(0,0,epx,epy);
-      armGrad.addColorStop(0,_darken(skin,0.1));armGrad.addColorStop(1,_lighten(skin,0.15));
+      armGrad.addColorStop(0,_darken(activeSkin,0.1));armGrad.addColorStop(1,_lighten(activeSkin,0.15));
       ctx.strokeStyle=armGrad;ctx.lineWidth=3.2-i*0.12;
       ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(cpx,cpy,epx,epy);ctx.stroke();
       // Sucker dots on some arms
@@ -1235,7 +1241,7 @@ class Octopus extends Entity {
 
     // --- Body with radial gradient (3D sphere feel) ---
     const bodyGrad=ctx.createRadialGradient(-3,1,2,-3,1,16);
-    bodyGrad.addColorStop(0,_lighten(skin,0.3));bodyGrad.addColorStop(0.55,skin);bodyGrad.addColorStop(1,_darken(skin,0.22));
+    bodyGrad.addColorStop(0,_lighten(activeSkin,0.3));bodyGrad.addColorStop(0.55,activeSkin);bodyGrad.addColorStop(1,_darken(activeSkin,0.22));
     ctx.fillStyle=bodyGrad;ctx.shadowColor='rgba(0,0,0,0.3)';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(0,4,15,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
 
@@ -1255,7 +1261,7 @@ class Octopus extends Entity {
     // --- Head with radial gradient ---
     const hx=0,hy=-14;
     const headGrad=ctx.createRadialGradient(hx-3,hy-3,1.5,hx,hy,11);
-    headGrad.addColorStop(0,_lighten(skin,0.32));headGrad.addColorStop(0.6,skin);headGrad.addColorStop(1,_darken(skin,0.2));
+    headGrad.addColorStop(0,_lighten(activeSkin,0.32));headGrad.addColorStop(0.6,activeSkin);headGrad.addColorStop(1,_darken(activeSkin,0.2));
     ctx.fillStyle=headGrad;
     ctx.beginPath();ctx.arc(hx,hy,11,0,Math.PI*2);ctx.fill();
     // Specular highlight
@@ -1504,7 +1510,7 @@ class PowerUp {
 }
 // =============================================================================
 class WaveManager {
-  constructor(){this.wave=0;this.state='gap';this.gapTimer=1500;this.spawnQueue=[];this.enemiesThisWave=0;this.waveCleared=false;}
+  constructor(){this.wave=0;this.state='gap';this.gapTimer=CONFIG.DIFF.waveGap||1500;this.spawnQueue=[];this.enemiesThisWave=0;this.waveCleared=false;}
   update(dt,enemies,audio){
     this.waveCleared=false;
     if(this.state==='gap'){this.gapTimer-=dt;if(this.gapTimer<=0){this.wave++;this._buildWave();this.state='active';}return;}
@@ -1609,7 +1615,7 @@ class Game {
     if(!this.nameEl)return;
     this.nameEl.addEventListener('keydown',e=>{
       if(e.key==='Enter'){e.preventDefault();const v=this.nameEl.value.trim();if(v){this.playerName=v;this._hideNameInput();this.toMenu();}}
-      if(e.key==='Escape'){this._hideNameInput();this.toLangSelect();}
+      if(e.key==='Escape'){this._hideNameInput();this.toDifficulty();}
     });
   }
   _showNameInput(){
@@ -1703,6 +1709,7 @@ class Game {
     this.lives=Math.max(0,this.lives-1);
     if(this.lives<=0){this.toGameOver();return;}
     this.player.hp=CONFIG.PLAYER_MAX_HP;
+    this.activePowerUps={};
     this.player.invincibleTimer=2000; // 2s respawn invincibility
     this.player.x=CONFIG.WIDTH/2;
     this.player.y=CONFIG.HEIGHT/2;
@@ -1785,7 +1792,7 @@ class Game {
     for(const e of this.enemies)e.update(effectiveDt,this.player);
     this.waves.update(dt,this.enemies,this.audio);
     // Spawn power-ups after each wave clear
-    if(this.waves.waveCleared)this._spawnWavePowerUps();
+    if(this.waves.waveCleared){this._spawnWavePowerUps();this._autoAimTarget=null;}
     this._updatePowerUps(dt);
     // Wave announcement trigger
     if(this._prevWaveState==='gap'&&this.waves.state==='active'){
@@ -2410,7 +2417,7 @@ class Game {
       ctx.restore();
     } else if(!readyToContinue){
       ctx.save();ctx.textAlign='center';ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(12);
-      ctx.fillText(this._isTouchDevice()?'Tippe eine Option an':'Klicke eine Option an',cx,hintY);
+      ctx.fillText(this._isTouchDevice()?T('start_t'):T('start'),cx,hintY);
       ctx.restore();
     }
 
@@ -2998,7 +3005,7 @@ class Game {
     ctx.fillStyle=CONFIG.COLORS.gold;
     ctx.shadowColor=CONFIG.COLORS.gold;ctx.shadowBlur=18;
     ctx.font=F(18,'bold');
-    fillTextFit(ctx,'Defeat all enemies to advance!',cx,CONFIG.HEIGHT*0.38,CONFIG.WIDTH-60,18,'bold');
+    fillTextFit(ctx,T('goal_text'),cx,CONFIG.HEIGHT*0.38,CONFIG.WIDTH-60,18,'bold');
     ctx.shadowBlur=0;
     ctx.restore();
   }
