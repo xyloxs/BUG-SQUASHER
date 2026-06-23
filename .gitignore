@@ -10,6 +10,10 @@ Thumbs.db
 .env
 *.env.local
 
+# PHP backend — contains DB credentials, deploy manually to Strato only
+# DO NOT commit — upload api.php directly via FTP to gse.events/test/
+api.php
+
 # Node (if needed later)
 node_modules/
 dist/

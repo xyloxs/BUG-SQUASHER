@@ -41,10 +41,9 @@ const CONFIG = {
   HS_KEY:          'bugSquasher_hs',
   LANG_KEY:        'bugSquasher_lang',
   SCORES_KEY:      'bugSquasher_scores',
-  LEADERBOARD_URL: '',
-  // Firebase path for GSE footer-link click tracking, e.g.:
-  // 'https://your-project-default-rtdb.firebaseio.com/clicks/bugsquasher'
-  CLICK_COUNTER_URL: '',
+  LEADERBOARD_URL: 'https://gse.events/test/api.php',
+  // Firebase path for GSE footer-link click tracking
+  CLICK_COUNTER_URL: 'https://gse.events/test/api.php?action=click',
   GSE_URL:         'https://gse.events',
 
   COLORS: {
