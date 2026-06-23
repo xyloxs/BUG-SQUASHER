@@ -99,11 +99,14 @@ const STRINGS = {
     intro_line2:   'Only one duck can stop them.',
     intro_cta:     'Tap or press any key',
     score_lbl:     'Score',
+    lang_title:    'Choose Language',
     lang_sub:      'Your browser language was pre-selected',
     diff_title:    'How hard do you want it?',
     diff_easy:     'Easy',     diff_easy_sub:   'Slow start, relaxed pace',
     diff_normal:   'Normal',   diff_normal_sub: 'The intended experience',
     diff_hard:     'Hard',     diff_hard_sub:   'No mercy',
+    pu_double:     '2x Shot', pu_hose: 'Water Hose', pu_shield: 'Shield', pu_slow: 'Time Slow',
+    tut_move:      'Joystick - move', tut_shoot: 'Button - shoot', tut_goal: 'Defeat all enemies!',
     name_title:    "What's your name?",
     name_sub:      'Shown on the leaderboard',
     name_hint:     'Press Enter to confirm',
@@ -167,6 +170,8 @@ const STRINGS = {
     diff_easy:     'Einfach',  diff_easy_sub:   'Entspannter Einstieg',
     diff_normal:   'Normal',   diff_normal_sub: 'Das volle Erlebnis',
     diff_hard:     'Schwer',   diff_hard_sub:   'Kein Erbarmen',
+    pu_double:     '2x Schuss', pu_hose: 'Wasserschlauch', pu_shield: 'Schild', pu_slow: 'Zeit Stop',
+    tut_move:      'Joystick - bewegen', tut_shoot: 'Button - schießen', tut_goal: 'Besiege alle Feinde!',
     name_title:    'Wie heißt du?',
     name_sub:      'Erscheint in der Bestenliste',
     name_hint:     'Enter drücken zum Bestätigen',
@@ -222,6 +227,8 @@ const STRINGS = {
     restart:       'Clic ou Espace pour rejouer',
     lang_title:    'Choisir la langue',
     lang_sub:      'Langue du navigateur présélectionnée',
+    pu_double:     '2x Tir', pu_hose: 'Lance eau', pu_shield: 'Bouclier', pu_slow: 'Temps lent',
+    tut_move:      'Joystick - deplacer', tut_shoot: 'Bouton - tirer', tut_goal: 'Vaincs tous les ennemis!',
     diff_title:    'Quelle difficulté?',
     diff_easy:     'Facile',   diff_easy_sub:   'Début tranquille',
     diff_normal:   'Normal',   diff_normal_sub: "L'expérience complète",
@@ -281,6 +288,8 @@ const STRINGS = {
     restart:       'Clic o Espacio para jugar de nuevo',
     lang_title:    'Seleccionar idioma',
     lang_sub:      'Idioma del navegador preseleccionado',
+    pu_double:     '2x Disparo', pu_hose: 'Manguera', pu_shield: 'Escudo', pu_slow: 'Tiempo lento',
+    tut_move:      'Joystick - mover', tut_shoot: 'Boton - disparar', tut_goal: '!Vence a todos los enemigos!',
     diff_title:    '¿Qué dificultad?',
     diff_easy:     'Fácil',    diff_easy_sub:   'Inicio relajado',
     diff_normal:   'Normal',   diff_normal_sub: 'La experiencia completa',
@@ -340,6 +349,8 @@ const STRINGS = {
     restart:       'انقر أو المسافة للعب مجدداً',
     lang_title:    'اختر اللغة',
     lang_sub:      'لغة المتصفح محددة مسبقاً',
+    pu_double:     'تضاعف الطلق', pu_hose: 'خرطوم الماء', pu_shield: 'درع', pu_slow: 'تباطؤ الوقت',
+    tut_move:      'عصا التحكم - تحرك', tut_shoot: 'الزر - اطلق', tut_goal: 'هزم جميع الاعداء!',
     diff_title:    'ما مستوى الصعوبة؟',
     diff_easy:     'سهل',      diff_easy_sub:   'بداية هادئة',
     diff_normal:   'عادي',     diff_normal_sub: 'التجربة الكاملة',
@@ -578,7 +589,7 @@ class InputManager {
       e.preventDefault();
       this._touchEverUsed = true;
       window.__isMobile = true;  // permanent flag — affects cooldown, enemy HP
-      for (const t of e.changedTouches) {
+      for (let _i = 0; _i < e.changedTouches.length; _i++) { const t = e.changedTouches[_i];
         const p = toLogical(t.clientX, t.clientY);
         this.mouse.x = p.x; this.mouse.y = p.y;
         this._clickConsumed = true; this._actionConsumed = true;
@@ -594,7 +605,7 @@ class InputManager {
     }, { passive: false });
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
-      for (const t of e.changedTouches) {
+      for (let _i = 0; _i < e.changedTouches.length; _i++) { const t = e.changedTouches[_i];
         const p = toLogical(t.clientX, t.clientY);
         if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) {
           this.touch.joystick.curX = p.x; this.touch.joystick.curY = p.y;
@@ -606,7 +617,7 @@ class InputManager {
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
       e.preventDefault();
-      for (const t of e.changedTouches) {
+      for (let _i = 0; _i < e.changedTouches.length; _i++) { const t = e.changedTouches[_i];
         if (this.touch.joystick.active && t.identifier === this.touch.joystick.id) this.touch.joystick.active = false;
         if (this.touch.shoot.active   && t.identifier === this.touch.shoot.id)    this.touch.shoot.active = false;
       }
@@ -1862,7 +1873,7 @@ class Game {
       })));
       console.groupEnd();
     };
-    console.log('%c🦆 BUG SQUASHER — type gseAdmin() for link analytics', 'color:#FFD60A');
+    if(location.hostname==='localhost'||location.hostname==='127.0.0.1')console.log('%c🦆 BUG SQUASHER — type gseAdmin() for link analytics', 'color:#FFD60A');
   }
 
   _drawFooter(ts){
@@ -2236,9 +2247,20 @@ class Game {
         this.toNameInput();
       }
     }
-    // Keyboard: 1/2/3 or Enter after mouse hover
+    // Keyboard: Enter to confirm, Escape to go back
     if(this.input.consumeAction()&&this._selectedDiff){
       this.toNameInput();
+    }
+    if(this.input.consumePause()){this.toLangSelect();}
+
+    // Back link — bottom of screen
+    const backY=Math.round(CONFIG.HEIGHT*0.88);
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillStyle=CONFIG.COLORS.textDim;ctx.font=F(14);
+    ctx.fillText('← '+T('name_back'),CONFIG.WIDTH/2,backY);
+    ctx.restore();
+    if(this.input.consumeClick()&&this.input.mouse.y>CONFIG.HEIGHT*0.83){
+      this.toLangSelect();
     }
   }
 
@@ -2602,10 +2624,10 @@ class Game {
     if(this.activePowerUps){
       const ap=this.activePowerUps;
       const entries=[];
-      if(ap.DOUBLE_SHOT)entries.push({type:'DOUBLE_SHOT',label:'2× SHOT', timer:ap.DOUBLE_SHOT.timer,maxTimer:8000});
-      if(ap.WATER_HOSE) entries.push({type:'WATER_HOSE', label:'HOSE ≋',  timer:ap.WATER_HOSE.timer, maxTimer:6000});
-      if(ap.SHIELD)     entries.push({type:'SHIELD',     label:'SHIELD ◈',timer:null,hitsLeft:ap.SHIELD.hitsLeft});
-      if(ap.TIME_SLOW)  entries.push({type:'TIME_SLOW',  label:'SLOW ⧖',  timer:ap.TIME_SLOW.timer,  maxTimer:5000});
+      if(ap.DOUBLE_SHOT)entries.push({type:'DOUBLE_SHOT',label:T('pu_double'), timer:ap.DOUBLE_SHOT.timer,maxTimer:8000});
+      if(ap.WATER_HOSE) entries.push({type:'WATER_HOSE', label:T('pu_hose'),  timer:ap.WATER_HOSE.timer, maxTimer:6000});
+      if(ap.SHIELD)     entries.push({type:'SHIELD',     label:T('pu_shield'),timer:null,hitsLeft:ap.SHIELD.hitsLeft});
+      if(ap.TIME_SLOW)  entries.push({type:'TIME_SLOW',  label:T('pu_slow'),  timer:ap.TIME_SLOW.timer,  maxTimer:5000});
       let slotY=50;
       for(const entry of entries){
         const col=POWERUP_COLORS[entry.type];
@@ -2735,8 +2757,8 @@ class Game {
     if(stepAlpha<=0)return;
 
     const steps=[
-      {icon:'👈',text:'Joystick — move',arrowDir:'left'},
-      {icon:'👉',text:'Button — shoot',arrowDir:'right'},
+      {icon:'👈',text:T('tut_move'),arrowDir:'left'},
+      {icon:'👉',text:T('tut_shoot'),arrowDir:'right'},
       {icon:'',text:'Defeat all enemies!',arrowDir:null},
     ];
     const step=steps[stepIdx];

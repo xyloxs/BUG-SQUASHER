@@ -4,6 +4,39 @@ All notable changes to **BUG-SQUASHER** are listed here.
 
 ---
 
+## v1.5.0 — 2026-06-23
+
+### New Features
+
+| Feature | Description |
+|---|---|
+| Grandparent enemies | Spider-Spider, Scooter-Grandma, Grumpy Grandpa, Sleepwalking Granny replace bug sprites |
+| Rambo duck progression | Duck earns headband, bandolier, vest and intense expression as score rises |
+| Water bullets | Blue teardrop water droplets replace yellow dots |
+| Difficulty selection | Easy / Normal / Hard screen before each game |
+| 3 Lives system | HP reaching zero costs 1 life; respawn with invincibility flash |
+| Power-up system | Double Shot, Water Hose, Shield, Time Slow - spawn after wave clear |
+| GTA-style HUD | Segmented health bar, life icons, wave badge, centered BONUS popup |
+| Global leaderboard | PHP/MySQL backend on Strato - scores saved cross-device |
+| Touch joystick | Permanent bottom-left joystick with dedicated shoot button |
+| Auto-aim (mobile) | Animated dashed beam targets nearest enemy automatically |
+| Progressive difficulty | Enemy speed scales per wave (+15% each wave) |
+| Tutorial overlay | First-time mobile players see 3-step control guide |
+| Back navigation | DIFFICULTY screen now has back button to language selection |
+
+### Fixes
+
+| Fix | Detail |
+|---|---|
+| iOS 15 touch crash | Replaced for-of TouchList with indexed loop for Safari compatibility |
+| Per-frame gradient freeze | Removed createRadialGradient/createLinearGradient from enemy draw() |
+| WCAG text legibility | Font sizes 9-12px raised to 14-16px; contrast ratios improved to AA |
+| Dead Player methods | Removed unused _drawBody/_drawHead/_drawBill/_drawEye/_drawFeet |
+| Missing EN strings | Added lang_title, power-up labels, tutorial labels to EN locale |
+| Hardcoded strings | Power-up labels and tutorial text now use T() for all 5 languages |
+
+---
+
 ## v1.4.0 — 2026-06-22
 
 ### New Features
