@@ -880,7 +880,8 @@ class Player extends Entity {
       ctx.beginPath();ctx.moveTo(3,-4);ctx.quadraticCurveTo(1,0,4,2);ctx.stroke();
       ctx.beginPath();ctx.moveTo(4,2);ctx.quadraticCurveTo(7,4,5,6);ctx.stroke();
       ctx.fillStyle='#D4D4D4';ctx.strokeStyle='#A0A0A0';ctx.lineWidth=0.7;ctx.shadowColor='#888';ctx.shadowBlur=2;
-      ctx.beginPath();ctx.roundRect(3,6,5.5,3.5,0.8);ctx.fill();ctx.shadowBlur=0;ctx.stroke();
+      // Use arc-based rounded rect for cross-browser compatibility (no roundRect API)
+      ctx.beginPath();ctx.moveTo(3.8,6);ctx.lineTo(7.7,6);ctx.arcTo(8.5,6,8.5,6.8,0.8);ctx.lineTo(8.5,8.7);ctx.arcTo(8.5,9.5,7.7,9.5,0.8);ctx.lineTo(3.8,9.5);ctx.arcTo(3,9.5,3,8.7,0.8);ctx.lineTo(3,6.8);ctx.arcTo(3,6,3.8,6,0.8);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.stroke();
       ctx.globalAlpha=1;ctx.restore();
     };
     _hb();
